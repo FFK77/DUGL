@@ -343,13 +343,13 @@ DSplitString * CreateDSplitString(unsigned int maxCharsCount, unsigned int maxSt
     char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxString + (sizeof(char*)*maxChars));
     if (allBuff != NULL) {
         splitString = (DSplitString *)allBuff;
+        splitString->globStr = &allBuff[sizeof(DSplitString)];
+        splitString->multiDelim = (bool*)&allBuff[sizeof(DSplitString)+maxString];
+        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxString+(sizeof(char)*256)];
         splitString->globLen = 0;
         splitString->maxGlobLength = maxString - 1;
-        splitString->globStr = &allBuff[sizeof(DSplitString)];
-        splitString->multiDelim = &allBuff[sizeof(DSplitString)+maxString];
         splitString->maxCountStrings = maxChars;
         splitString->countStrings = 0;
-        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxString+(sizeof(char)*256)];
     }
     return splitString;
 }
@@ -366,17 +366,21 @@ int splitDSplitString(DSplitString *splitString, const char *str, char delim, bo
     }
     splitString->countStrings = 0;
     unsigned int startIdx = 0;
+    unsigned int countNotDelim = 0;
     for (idx =0; idx < splitString->globLen; idx++) {
         if (splitString->globStr[idx] == delim) {
-            if ((addEmpty || (idx > startIdx)) && splitString->countStrings < splitString->maxCountStrings) {
+            if ((addEmpty || (idx > startIdx && countNotDelim > 0)) && splitString->countStrings < splitString->maxCountStrings) {
                 splitString->globStr[idx] = '\0';
                 splitString->ListStrings[splitString->countStrings] = &splitString->globStr[startIdx];
                 splitString->countStrings++;
             }
             startIdx = idx+1;
+            countNotDelim = 0;
+        } else {
+            countNotDelim ++;
         }
     }
-    if ((addEmpty || startIdx <= splitString->globLen) && splitString->countStrings < splitString->maxCountStrings) {
+    if ((addEmpty || (startIdx <= splitString->globLen && countNotDelim > 0)) && splitString->countStrings < splitString->maxCountStrings) {
         splitString->ListStrings[splitString->countStrings] = &splitString->globStr[startIdx];
         splitString->countStrings++;
     }
@@ -386,10 +390,11 @@ int splitDSplitString(DSplitString *splitString, const char *str, char delim, bo
 
 void SetMultiDelimDSplitString(DSplitString *splitString, char *mDelim) {
     unsigned char *s = (unsigned char*)mDelim;
+    // set all possible char to false
     SDL_memset(splitString->multiDelim, 0, (sizeof(char)*256));
-
+    // enable splitting for each char on the *mDelim string
     for (; *s != 0; s++)
-        splitString->multiDelim[*s] = 1;
+        splitString->multiDelim[*s] = true;
 }
 
 int splitMultiDelimDSplitString(DSplitString *splitString, const char *str, bool addEmpty) {
@@ -404,17 +409,21 @@ int splitMultiDelimDSplitString(DSplitString *splitString, const char *str, bool
     }
     splitString->countStrings = 0;
     unsigned int startIdx = 0;
+    unsigned int countNotDelim = 0;
     for (idx =0; idx < splitString->globLen; idx++) {
         if (splitString->multiDelim[(unsigned char)(splitString->globStr[idx])]) {
-            if ((addEmpty || (idx > startIdx)) && splitString->countStrings < splitString->maxCountStrings) {
+            if ((addEmpty || (idx > startIdx && countNotDelim > 0)) && splitString->countStrings < splitString->maxCountStrings) {
                 splitString->globStr[idx] = '\0';
                 splitString->ListStrings[splitString->countStrings] = &splitString->globStr[startIdx];
                 splitString->countStrings++;
             }
             startIdx = idx+1;
+            countNotDelim = 0;
+        } else {
+            countNotDelim ++;
         }
     }
-    if ((addEmpty || startIdx <= splitString->globLen) && splitString->countStrings < splitString->maxCountStrings) {
+    if ((addEmpty || (startIdx <= splitString->globLen && countNotDelim > 0)) && splitString->countStrings < splitString->maxCountStrings) {
         splitString->ListStrings[splitString->countStrings] = &splitString->globStr[startIdx];
         splitString->countStrings++;
     }
@@ -495,6 +504,7 @@ void DestroyDSplitString(DSplitString *splitString) {
 void readWorkerFunctionDFBuff(void *job/*(FileBufferReadJob*)*/, int idx) {
     if (job == NULL)
         return;
+    SetDWorkerPriority(0);
     DFileBufferReadJob *myjob = (DFileBufferReadJob*)(job);
     if (myjob->m_sizeBuff == 0 || myjob->m_file == NULL)
         return;
@@ -525,43 +535,43 @@ DFileBuffer* CreateDFileBuffer(unsigned int sizeBuff) {
     return fileBuff;
 }
 
-void DestroyDFileBuffer(DFileBuffer *ptr) {
-    if (ptr->m_readWorkerID != 0) {
-        DestroyDWorker(ptr->m_readWorkerID);
-        ptr->m_readWorkerID = 0;
+void DestroyDFileBuffer(DFileBuffer *pFileBuff) {
+    if (pFileBuff->m_readWorkerID != 0) {
+        DestroyDWorker(pFileBuff->m_readWorkerID);
+        pFileBuff->m_readWorkerID = 0;
     }
-    CloseFileDFileBuffer(ptr);
-    SDL_free(ptr);
+    CloseFileDFileBuffer(pFileBuff);
+    SDL_free(pFileBuff);
 }
 
-void CloseFileDFileBuffer(DFileBuffer *ptr) {
-    if (ptr->m_file != NULL) {
-        fclose(ptr->m_file);
-        ptr->m_file = NULL;
-        ptr->m_bytesInBuff = 0;
-        ptr->m_curPos = 0;
+void CloseFileDFileBuffer(DFileBuffer *pFileBuff) {
+    if (pFileBuff->m_file != NULL) {
+        fclose(pFileBuff->m_file);
+        pFileBuff->m_file = NULL;
+        pFileBuff->m_bytesInBuff = 0;
+        pFileBuff->m_curPos = 0;
     }
 }
 
-void ReadChunkDFileBuffer(DFileBuffer *ptr) {
+void ReadChunkDFileBuffer(DFileBuffer *pFileBuff) {
     char *tmpBuff = NULL;
-    if (ptr->m_EOF) {
+    if (pFileBuff->m_EOF) {
         return;
     }
-    WaitDWorker(ptr->m_readWorkerID);
+    WaitDWorker(pFileBuff->m_readWorkerID);
     // swap buffer pointer
-    tmpBuff = ptr->m_buffRead;
-    ptr->m_buffRead = ptr->m_ReadJob.m_buffRead;
-    ptr->m_buffReadWorker = tmpBuff;
+    tmpBuff = pFileBuff->m_buffRead;
+    pFileBuff->m_buffRead = pFileBuff->m_ReadJob.m_buffRead;
+    pFileBuff->m_buffReadWorker = tmpBuff;
 
-    ptr->m_bytesInBuff = ptr->m_ReadJob.m_bytesInBuff;
-    ptr->m_EOF = ptr->m_ReadJob.m_EOF;
-    ptr->m_curPos = 0;
+    pFileBuff->m_bytesInBuff = pFileBuff->m_ReadJob.m_bytesInBuff;
+    pFileBuff->m_EOF = pFileBuff->m_ReadJob.m_EOF;
+    pFileBuff->m_curPos = 0;
 
     // read next buff
-    if (!ptr->m_EOF) {
-        ptr->m_ReadJob.m_buffRead = ptr->m_buffReadWorker;
-        RunDWorker(ptr->m_readWorkerID, false);
+    if (!pFileBuff->m_EOF) {
+        pFileBuff->m_ReadJob.m_buffRead = pFileBuff->m_buffReadWorker;
+        RunDWorker(pFileBuff->m_readWorkerID, false);
     }
 }
 
@@ -640,6 +650,10 @@ unsigned int GetBytesDFileBuffer(DFileBuffer *fbuff, void *buff, unsigned int by
             }
         }
     }
+    // read next possible chunk if buff is emty
+    if (fbuff->m_bytesInBuff == 0) {
+        ReadChunkDFileBuffer(fbuff);
+    }
 
     return bytesCopied;
 }
@@ -700,6 +714,11 @@ unsigned int GetLineDFileBuffer(DFileBuffer *fbuff, char *line, unsigned int max
     if (bytesCopied < sizeLine)
         memcpy(&line[bytesCopied], &fbuff->m_buffRead[startPos], sizeLine - bytesCopied);
     line[sizeLine] = 0;
+    // read next possible chunk if buff is emty
+    if (fbuff->m_bytesInBuff == 0) {
+        ReadChunkDFileBuffer(fbuff);
+    }
+
     return sizeLine;
 }
 

@@ -89,7 +89,7 @@ unsigned int DHashStr(char *str);
 
 typedef struct {
     char            *globStr;         // global buffer of source string to split
-    char            *multiDelim;      // 256 boolean array of chars used as separator
+    bool            *multiDelim;      // 256 boolean array of chars used as separator
     unsigned int     globLen,         // current length
                      maxGlobLength,   // max global length
                      maxCountStrings,
