@@ -97,28 +97,26 @@ OutTextBM16:
             MOV         ESI,[BMCharsSSurfs+EAX*4]
             MOV         EDI,SrcSurf
             CopySurfDA  ; copy surf
-            MOV         ECX,[BMCharY]
 
 .RendStrLoop:
             PUSH        EDX
-            PUSH        ECX
+            MOV         ECX,[BMCharY]
             MOV         EDX,[BMCharsXOffset+EAX*4]
             ADD         ECX,[BMCharsGHeight]
-            ADD         [BMCharX],EDX                 ; CurDBMFONT.CharX += myBMFont->CharsXOffset[*str];
+            ADD         EDX,[BMCharX]                ; = CurDBMFONT.CharX + myBMFont->CharsXOffset[*str];
             SUB         ECX,[BMCharsHeight+EAX*4]
             SUB         ECX,[BMCharsYOffset+EAX*4]
-            MOV         [BMCharY],ECX                 ; CurDBMFONT.CharY = outY + CurDBMFONT.CharsGHeight - (CurDBMFONT.CharsHeight[*str] + CurDBMFONT.CharsYOffset[*str]);
+            MOV         [BMCharsRendX],EDX
+            MOV         [BMCharsRendY],ECX                 ; BMCharsRendY = BMCharY + CurDBMFONT.CharsGHeight - (CurDBMFONT.CharsHeight[*str] + CurDBMFONT.CharsYOffset[*str]);
             CALL        PutBMChar16
-            POP         ECX                           ; restore outTextY
             MOV         EAX,[BMCharCurChar]           ; current rendered char
             POP         EDX                           ; restore str pointer
-            MOV         EBP,[BMCharsXOffset+EAX*4]
+            MOV         EBP,[BMCharsPlusX+EAX*4]
             INC         EDX                           ; increment str pointer
-            SUB         EBP,[BMCharsPlusX+EAX*4]
+            ADD         [BMCharX],EBP                 ; CurDBMFONT.CharX += CurDBMFONT.CharsPlusX[*str]
             MOVZX       EAX,BYTE [EDX]
-            SUB         [BMCharX],EBP                 ; CurDBMFONT.CharX += CurDBMFONT.CharsPlusX[*str] - CurDBMFONT.CharsXOffset[*str];
             OR          EAX,EAX                       ; end of the string ?
-            JZ          SHORT .EndLoop
+            JZ          SHORT .End
             CMP         EAX,[BMCharCurChar]
             JE          SHORT .NotSetSrcSurf
             MOV         ESI,[BMCharsSSurfs+EAX*4]
@@ -128,8 +126,6 @@ OutTextBM16:
 .NotSetSrcSurf:
             JMP         .RendStrLoop
 
-.EndLoop:
-            MOV         [BMCharY],ECX                 ; restore input BMCharY
 .End:
             POP         EBX
             POP         EDI
@@ -137,14 +133,14 @@ OutTextBM16:
 
     RETURN
 
-; PUT Bitmap character in SrcSurf into CurSurf
+; PUT Bitmap character in SrcSurf into CurSurf at (BMCharsRendX, BMCharsRendY)
 ;*****************
 
 ALIGN 4
 PutBMChar16:
 
-            MOV         EAX,[BMCharX]
-            MOV         EBX,[BMCharY]
+            MOV         EAX,[BMCharsRendX]
+            MOV         EBX,[BMCharsRendY]
             MOV         ECX,EAX
             MOV         EDX,EBX
 
@@ -182,8 +178,8 @@ PutBMChar16:
             MOV         [PutSurfMinY],EDX
 ; --- compute Put coordinates of the entire Surf
 ; EAX: MaxX, EBX; MaxY, ECX: MinX, EDX: MnY
-            MOV         EAX,[BMCharX]
-            MOV         EBX,[BMCharY]
+            MOV         EAX,[BMCharsRendX]
+            MOV         EBX,[BMCharsRendY]
             MOV         ECX,EAX
             MOV         EDX,EBX
             MOV         EDI,[SOrgX]

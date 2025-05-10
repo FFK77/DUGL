@@ -1582,8 +1582,8 @@ BMCharX            RESD  1
 BMCharY            RESD  1
 BMCharCurChar      RESD  1
 BMCharsMainSurf    RESD  1
-BMCharsGHeight5    RESD  1
-BMCharsGHeight6    RESD  1;--------------
+BMCharsRendX       RESD  1
+BMCharsRendY       RESD  1;--------------
 
 QMulSrcBlend      RESD  4
 QMulDstBlend      RESD  4;--------------

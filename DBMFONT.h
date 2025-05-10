@@ -38,8 +38,8 @@ typedef struct {
     int         CharY; // Y position of next char to render
     int         CharCurChar; // current char to render
     DgSurf*     CharsMainSurf; // pointer to single DGSurf, if all chars DGSurf point/share to/same single DGSurf
-    int         resv1;
-    int         resv2;
+    int         RendX;
+    int         RendY;
 } DBMFONT;
 
 extern DBMFONT       CurDBMFONT; // current active Bitmap FONT
