@@ -40,7 +40,7 @@ void D3DLoader::LoadOBJ(char *filename, DVEC4 *vertices_array, int &vertices_cou
 	faces_count = 0;
 	vertices_count = 0;
 	for(;;) {
-		if (GetLineDFileBuffer(File3DBuffer, ListInfoLine->globStr, ListInfoLine->maxCountStrings) == 0 && IsEndOfFileDFileBuffer(File3DBuffer)) break;
+		if ((ListInfoLine->globLen = GetLineDFileBuffer(File3DBuffer, ListInfoLine->globStr, ListInfoLine->maxGlobLength)) == 0 && IsEndOfFileDFileBuffer(File3DBuffer)) break;
 		TrimGlobStringDSplitString(ListInfoLine);
 		// ignore if empty or contain comments
 		if (ListInfoLine->globStr[0] == '\0' || ListInfoLine->globStr[0] == '#')
