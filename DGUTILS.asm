@@ -46,6 +46,7 @@ CMaskB_RGB16        EQU 0x1f   ; blue bits 0->4
 CMaskG_RGB16        EQU 0x3f<<5  ; green bits 5->10
 CMaskR_RGB16        EQU 0x1f<<11 ; red bits 11->15
 MaxDeltaDim         EQU 1<< (32-Prec)
+BMFONTOctaDQSize    EQU 48
 
 
 ; param ESI: source Surf, EDI: Dest Surf

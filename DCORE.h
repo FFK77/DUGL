@@ -56,6 +56,7 @@ extern DgSurf   *RendFrontSurf; // currently displayed if double buffer enabled
 
 extern DgSurf   CurSurf; // The Surf that graphic functions will render to as DgClear16, Line16, Poly16 ...
 extern DgSurf   SrcSurf; // The source Surf used by graphic functions as Poly16, PutSurf16, ResizeViewSurf16 ..
+extern DgSurf   DgNanoSurf; // One Pixel DgSurf (WxH) (1x1) black surf
 extern char LastPolyStatus; // Warning ReadOnly! used internally by Poly16xxx, RePoly16xxx
                             // Last Rendered Poly Status: ='N' not rendered, ='C' clipped, ='I' In rendererd
 
@@ -149,6 +150,9 @@ void DestroySurf(DgSurf *S);
 // Create DgSurf from buffer
 // return 1 if success 0 if fail, return new created DgSurf in *S if success
 int CreateSurfBuff(DgSurf **S, int ResHz, int ResVt, char BitsPixel, void *Buff);
+// Create DgSurf from buffer and setting view
+// return 1 if success 0 if fail, return new created DgSurf in *S if success
+int CreateSurfBuffView(DgSurf **S, int ResHz, int ResVt, char BitsPixel, void *Buff, DgView *V);
 
 // View or (clipped area) handling ===========
 
@@ -263,5 +267,5 @@ void SurfCopyTrans16(DgSurf *S16Dst, DgSurf *S16Src,int trans);
 #define RGB16(r,g,b) ((b>>3)|((g>>2)<<5)|((r>>3)<<11))
 
 #endif // DCORE_H_INCLUDED
-#endif // header guard 
+#endif // header guard
 

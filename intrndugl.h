@@ -200,7 +200,7 @@ void ConvB8ToB16Pal(void *BuffImgSrc, void *BuffImgDst, int ImgWidth, int ImgHei
 #define DMIN(a,b) ((a) < (b) ? a : b)
 
 // DgSurf
-#define MIN_DGSURF_WIDTH    4
+#define MIN_DGSURF_WIDTH    1
 #define MIN_DGSURF_HEIGHT   1
 
 #ifdef __cplusplus

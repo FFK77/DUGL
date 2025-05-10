@@ -613,6 +613,38 @@ int CreateSurfBuff(DgSurf **S, int ResHz, int ResVt, char BitsPixel, void *Buff)
     return 1;
 }
 
+int CreateSurfBuffView(DgSurf **S, int ResHz, int ResVt, char BitsPixel, void *Buff, DgView *V) {
+    if ((*S = (DgSurf*)SDL_SIMDAlloc(sizeof(DgSurf))) == NULL) {
+        dgLastErrID = DG_ERSS_NO_MEM;
+        return 0;
+    }
+    SDL_memset4(*S, 0, sizeof(DgSurf)/4);
+    int pixelsize=GetPixelSize(BitsPixel);
+
+    if (pixelsize == 0 || ResHz<MIN_DGSURF_WIDTH || ResVt<MIN_DGSURF_HEIGHT || Buff == NULL) {
+        free(*S);
+        *S = NULL;
+        dgLastErrID = DG_ERSS_INVALID_DGSURF_FORMAT;
+        return 0;
+    }
+    (*S)->ResH= ResHz;
+    (*S)->ResV= ResVt;
+    (*S)->MaxX= V->MaxX;
+    (*S)->MaxY= V->MaxY;
+    (*S)->MinX= V->MinX;
+    (*S)->MinY= V->MinX;
+    (*S)->SizeSurf= ResHz*ResVt*pixelsize;
+    (*S)->OrgX= V->OrgX;
+    (*S)->OrgY= V->OrgY;
+    (*S)->BitsPixel= BitsPixel;
+    (*S)->ScanLine= ResHz *pixelsize;
+    (*S)->Mask= 0;
+    (*S)->NegScanLine = -((*S)->ScanLine);
+    (*S)->rlfb = (int)(Buff);
+    (*S)->vlfb = (int)(Buff)+(V->OrgX*pixelsize)-((V->OrgY-(ResVt-1))*ResHz*pixelsize);
+    return 1;
+}
+
 // View or (clipped area) handling
 
 // sets DgSurf View

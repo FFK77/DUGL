@@ -58,6 +58,8 @@
 %define MaskBlndResizeViewSurf16    MaskBlndResizeViewSurf16_C4
 %define SurfMaskCopyBlnd16          SurfMaskCopyBlnd16_C4
 %define SurfMaskCopyTrans16         SurfMaskCopyTrans16_C4
+%define SetCurBMFont                SetCurBMFont_C4
+%define OutTextBM16                 OutTextBM16_C4
 
 ; GLOBAL vars
 %define CurSurf                     CurSurf_C4
@@ -93,6 +95,26 @@
 %define ScanLine                    ScanLine_C4
 %define Mask                        Mask_C4
 %define NegScanLine                 NegScanLine_C4
+
+%define Svlfb                       Svlfb_C4
+%define Srlfb                       Srlfb_C4
+%define SResH                       SResH_C4
+%define SResV                       SResV_C4
+%define SMaxX                       SMaxX_C4
+%define SMaxY                       SMaxY_C4
+%define SMinX                       SMinX_C4
+%define SMinY                       SMinY_C4
+%define SOrgY                       SOrgY_C4
+%define SOrgX                       SOrgX_C4
+%define SSizeSurf                   SSizeSurf_C4
+%define SOffVMem                    SOffVMem_C4
+%define SBitsPixel                  SBitsPixel_C4
+%define SScanLine                   SScanLine_C4
+%define SMask                       SMask_C4
+%define SNegScanLine                SNegScanLine_C4
+
+%define CurDBMFONT                  CurDBMFONT_C4
+%define SetCurBMFont                SetCurBMFont_C4
 
 ; redefine FILLRET and some jumps as renaming fail to update them
 %macro  @FILLRET_C4    0

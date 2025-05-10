@@ -24,6 +24,7 @@
 #include "DERRS.h"
 #include "DWORKER.h"
 #include "DCORE.h"
+#include "DBMFONT.h"
 #include "DCORES.h"
 #include "DFONT.h"
 #include "DCONV.h"

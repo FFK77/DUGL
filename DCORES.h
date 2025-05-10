@@ -29,7 +29,8 @@ extern "C" {
 typedef struct {
     DgSurf   *CurSurf; // Pointer to current render DgSurf
     DgSurf   *SrcSurf; // Pointer to current source DgSurf
-    char *LastPolyStatus; // last rendered Poly status
+    char     *LastPolyStatus; // last rendered Poly status
+    DBMFONT  *CurDBMFONT;
 
     // DgSurf handling functions ============================
 
@@ -82,6 +83,9 @@ typedef struct {
     void (*Poly16)(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
     // Should be used through DGCORES_REPOLY16 else LastPolyStatus will not be checked
     void (*RePoly16)(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
+    // BMFont
+    void (*SetCurBMFont)(DBMFONT *pBMFONT);
+    void (*OutTextBM16)(const char *str);
 
 } DGCORE;
 
@@ -169,6 +173,12 @@ void RePoly16_C2(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 // REPOLY16_C2 provided for convenience as RePoly16_C2 handle only drawn polygones with status 'C' or 'I' to avoid useless calls
 #define REPOLY16_C2(ListPt, SS, TypePoly, ColPoly) if (LastPolyStatus_C2!='N') RePoly16_C2(ListPt, SS, TypePoly, ColPoly);
 
+// BMFONT
+extern DBMFONT       CurDBMFONT_C2; // current active Bitmap FONT
+void OutTextBM16_C2(const char *str);
+void SetCurBMFont_C2(DBMFONT *pBMFONT);
+
+
 // DUGL CORE 3 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DUGL Core3 Main global variables
@@ -242,6 +252,11 @@ void RePoly16_C3(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 // REPOLY16_C3 provided for convenience as RePoly16_C3 handle only drawn polygones with status 'C' or 'I' to avoid useless calls
 #define REPOLY16_C3(ListPt, SS, TypePoly, ColPoly) if (LastPolyStatus_C3!='N') RePoly16_C3(ListPt, SS, TypePoly, ColPoly);
 
+// BMFONT
+extern DBMFONT       CurDBMFONT_C3; // current active Bitmap FONT
+void OutTextBM16_C3(const char *str);
+void SetCurBMFont_C3(DBMFONT *pBMFONT);
+
 // DUGL CORE 4 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DUGL Core4 Main global variables
@@ -314,6 +329,11 @@ void Poly16_C4(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 void RePoly16_C4(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 // REPOLY16_C4 provided for convenience as RePoly16_C4 handle only drawn polygones with status 'C' or 'I' to avoid useless calls
 #define REPOLY16_C4(ListPt, SS, TypePoly, ColPoly) if (LastPolyStatus_C4!='N') RePoly16_C4(ListPt, SS, TypePoly, ColPoly);
+
+// BMFONT
+extern DBMFONT       CurDBMFONT_C4; // current active Bitmap FONT
+void OutTextBM16_C4(const char *str);
+void SetCurBMFont_C4(DBMFONT *pBMFONT);
 
 #ifdef __cplusplus
         }  // extern "C" {

@@ -33,6 +33,7 @@ GLOBAL  line16, Line16, linemap16, LineMap16, lineblnd16, LineBlnd16, linemapbln
 GLOBAL  Poly16, RePoly16, PutSurf16, PutMaskSurf16, PutSurfBlnd16, PutMaskSurfBlnd16, PutSurfTrans16, PutMaskSurfTrans16
 GLOBAL  ResizeViewSurf16, MaskResizeViewSurf16, TransResizeViewSurf16, MaskTransResizeViewSurf16, BlndResizeViewSurf16, MaskBlndResizeViewSurf16
 GLOBAL  SurfMaskCopyBlnd16, SurfMaskCopyTrans16
+GLOBAL  SetCurBMFont, OutTextBM16
 
 ; GLOBAL Variables
 GLOBAL  CurSurf, SrcSurf
@@ -40,6 +41,9 @@ GLOBAL  TPolyAdDeb, TPolyAdFin, TexXDeb, TexXFin, TexYDeb, TexYFin, PColDeb, PCo
 
 GLOBAL  vlfb,rlfb,ResH,ResV, MaxX, MaxY, MinX, MinY, OrgY, OrgX, SizeSurf,OffVMem
 GLOBAL  BitsPixel, ScanLine,Mask,NegScanLine
+
+GLOBAL  CurDBMFONT
+
 
 ; EXTERN GLOBAL VARS
 EXTERN  QBlue16Mask, QGreen16Mask, QRed16Mask, WBGR16Mask
@@ -64,10 +68,11 @@ SECTION .text  ALIGN=32
 %include "fasthzline16.asm"
 %include "hzline16.asm"
 %include "pts16.asm"
+%include "bmfont.asm"
 %include "line16.asm"
 %include "fill16.asm"
 
-ALIGN 32
+ALIGN 4
 DgSetCurSurf:
     ARG S1, 4
 
@@ -90,13 +95,13 @@ DgSetCurSurf:
 
     RETURN
 
-ALIGN 32
+ALIGN 4
 DgSetSrcSurf:
     ARG SrcS, 4
 
             MOV         ECX,[EBP+SrcS]
-            JECXZ       .NotSet
             MOV         EAX,SrcSurf
+            JECXZ       .NotSet
             MOVDQA      xmm0,[ECX]
             MOVDQA      xmm1,[ECX+32]
             MOVDQA      xmm2,[ECX+16]
@@ -110,7 +115,7 @@ DgSetSrcSurf:
 
     RETURN
 
-ALIGN 32
+ALIGN 4
 DgGetCurSurf:
   ARG SGet, 4
 
@@ -1562,6 +1567,23 @@ TexYDeb           RESD  MaxResV
 TexYFin           RESD  MaxResV
 PColDeb           RESD  MaxResV
 PColFin           RESD  MaxResV
+
+; bitmap fonts data
+CurDBMFONT:
+BMCharsSSurfs      RESD  256
+BMCharsPlusX       RESD  256
+BMCharsWidth       RESD  256
+BMCharsHeight      RESD  256
+BMCharsXOffset     RESD  256
+BMCharsYOffset     RESD  256
+BMCharsGHeight     RESD  1
+BMCharsGLineHeight RESD  1
+BMCharX            RESD  1
+BMCharY            RESD  1
+BMCharCurChar      RESD  1
+BMCharsMainSurf    RESD  1
+BMCharsGHeight5    RESD  1
+BMCharsGHeight6    RESD  1;--------------
 
 QMulSrcBlend      RESD  4
 QMulDstBlend      RESD  4;--------------

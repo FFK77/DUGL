@@ -36,6 +36,7 @@ bool GetDGCORE(DGCORE *dgCore, int idxDgCore) {
         dgCore->CurSurf = &CurSurf;
         dgCore->SrcSurf = &SrcSurf;
         dgCore->LastPolyStatus = &LastPolyStatus;
+        dgCore->CurDBMFONT = &CurDBMFONT;
 
         dgCore->DgSetCurSurf = DgSetCurSurf;
         dgCore->DgGetCurSurf = DgGetCurSurf;
@@ -73,12 +74,15 @@ bool GetDGCORE(DGCORE *dgCore, int idxDgCore) {
         dgCore->Poly16 = Poly16;
         dgCore->RePoly16 = RePoly16;
 
+        dgCore->SetCurBMFont = SetCurBMFont;
+        dgCore->OutTextBM16 = OutTextBM16;
         break;
 
     case 1:
         dgCore->CurSurf = &CurSurf_C2;
         dgCore->SrcSurf = &SrcSurf_C2;
         dgCore->LastPolyStatus = &LastPolyStatus_C2;
+        dgCore->CurDBMFONT = &CurDBMFONT_C2;
 
         dgCore->DgSetCurSurf = DgSetCurSurf_C2;
         dgCore->DgGetCurSurf = DgGetCurSurf_C2;
@@ -119,12 +123,15 @@ bool GetDGCORE(DGCORE *dgCore, int idxDgCore) {
         dgCore->Poly16 = Poly16_C2;
         dgCore->RePoly16 = RePoly16_C2;
 
+        dgCore->SetCurBMFont = SetCurBMFont_C2;
+        dgCore->OutTextBM16 = OutTextBM16_C2;
         break;
 
     case 2:
         dgCore->CurSurf = &CurSurf_C3;
         dgCore->SrcSurf = &SrcSurf_C3;
         dgCore->LastPolyStatus = &LastPolyStatus_C3;
+        dgCore->CurDBMFONT = &CurDBMFONT_C3;
 
         dgCore->DgSetCurSurf = DgSetCurSurf_C3;
         dgCore->DgGetCurSurf = DgGetCurSurf_C3;
@@ -165,12 +172,15 @@ bool GetDGCORE(DGCORE *dgCore, int idxDgCore) {
         dgCore->Poly16 = Poly16_C3;
         dgCore->RePoly16 = RePoly16_C3;
 
+        dgCore->SetCurBMFont = SetCurBMFont_C3;
+        dgCore->OutTextBM16 = OutTextBM16_C3;
         break;
 
     case 3:
         dgCore->CurSurf = &CurSurf_C4;
         dgCore->SrcSurf = &SrcSurf_C4;
         dgCore->LastPolyStatus = &LastPolyStatus_C4;
+        dgCore->CurDBMFONT = &CurDBMFONT_C4;
 
         dgCore->DgSetCurSurf = DgSetCurSurf_C4;
         dgCore->DgGetCurSurf = DgGetCurSurf_C4;
@@ -210,6 +220,9 @@ bool GetDGCORE(DGCORE *dgCore, int idxDgCore) {
         dgCore->PutMaskSurfTrans16 = PutMaskSurfTrans16_C4;
         dgCore->Poly16 = Poly16_C4;
         dgCore->RePoly16 = RePoly16_C4;
+
+        dgCore->SetCurBMFont = SetCurBMFont_C4;
+        dgCore->OutTextBM16 = OutTextBM16_C4;
 
         break;
     }

@@ -28,6 +28,18 @@
 #define DG_ERSS_WINDOW_CREATION_FAIL            7
 #define DG_ERSS_WINDOW_SURFACE_CREATION_FAIL    8
 #define DG_ERSS_INVALID_DGSURF_FORMAT           9
+#define DG_ERSS_FILE_NOT_FOUND                  10
+#define DG_ERSS_INVALID_BMFONT_DESC_FORMAT      11
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern int              dgLastErrID;
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif // DERRS_H_INCLUDED
