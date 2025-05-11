@@ -99,12 +99,12 @@ OutTextBM16:
             CopySurfDA  ; copy surf
 
 .RendStrLoop:
-            PUSH        EDX
             MOV         ECX,[BMCharY]
-            MOV         EDX,[BMCharsXOffset+EAX*4]
+            PUSH        EDX
             ADD         ECX,[BMCharsGHeight]
-            ADD         EDX,[BMCharX]                ; = CurDBMFONT.CharX + myBMFont->CharsXOffset[*str];
+            MOV         EDX,[BMCharsXOffset+EAX*4]
             SUB         ECX,[BMCharsHeight+EAX*4]
+            ADD         EDX,[BMCharX]                ; = CurDBMFONT.CharX + myBMFont->CharsXOffset[*str];
             SUB         ECX,[BMCharsYOffset+EAX*4]
             MOV         [BMCharsRendX],EDX
             MOV         [BMCharsRendY],ECX                 ; BMCharsRendY = BMCharY + CurDBMFONT.CharsGHeight - (CurDBMFONT.CharsHeight[*str] + CurDBMFONT.CharsYOffset[*str]);
