@@ -336,19 +336,44 @@ bool InsertAlignDumpValDSTRDic(DSTRDic *ptr, char *key, void *value, size_t size
 
 // DSplitString
 
-DSplitString * CreateDSplitString(unsigned int maxCharsCount, unsigned int maxStringLength) {
+DSplitString * CreateDSplitString(unsigned int maxStrSplitsCount, unsigned int maxStringLength) {
     DSplitString *splitString = NULL;
-    unsigned int maxChars = (maxCharsCount > 0) ? maxCharsCount : DEFAULT_DSPLITSTRING_CHARSCOUNT;
+    unsigned int maxSplits = (maxStrSplitsCount > 0) ? maxStrSplitsCount : DEFAULT_DSPLITSTRING_CHARSCOUNT;
     unsigned int maxString = (maxStringLength > 0) ? maxStringLength : DEFAULT_DSPLITSTRING_GLOBSTRINGSIZE;
-    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxString + (sizeof(char*)*maxChars));
+    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxString + (sizeof(char*)*maxSplits));
     if (allBuff != NULL) {
         splitString = (DSplitString *)allBuff;
         splitString->globStr = &allBuff[sizeof(DSplitString)];
+        splitString->globStr[0]='\0';
         splitString->multiDelim = (bool*)&allBuff[sizeof(DSplitString)+maxString];
         splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxString+(sizeof(char)*256)];
         splitString->globLen = 0;
         splitString->maxGlobLength = maxString - 1;
-        splitString->maxCountStrings = maxChars;
+        splitString->maxCountStrings = maxSplits;
+        splitString->countStrings = 0;
+    }
+    return splitString;
+}
+
+DSplitString * CreateStrDSplitString(unsigned int maxStrSplitsCount, const char *str) {
+    DSplitString *splitString = NULL;
+    unsigned int maxSplits = (maxStrSplitsCount > 0) ? maxStrSplitsCount : DEFAULT_DSPLITSTRING_CHARSCOUNT;
+    unsigned int maxStringLength = (str != NULL) ? (strlen(str)+1) : DEFAULT_DSPLITSTRING_GLOBSTRINGSIZE;
+    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxStringLength + (sizeof(char*)*maxSplits));
+    if (allBuff != NULL) {
+        splitString = (DSplitString *)allBuff;
+        splitString->globStr = &allBuff[sizeof(DSplitString)];
+        if (str != NULL) {
+            strcpy(splitString->globStr, str);
+            splitString->globLen = maxStringLength - 1;
+        } else {
+            splitString->globStr[0]='\0';
+            splitString->globLen = 0;
+        }
+        splitString->multiDelim = (bool*)&allBuff[sizeof(DSplitString)+maxStringLength];
+        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxStringLength+(sizeof(char)*256)];
+        splitString->maxGlobLength = maxStringLength - 1;
+        splitString->maxCountStrings = maxSplits;
         splitString->countStrings = 0;
     }
     return splitString;
@@ -493,7 +518,6 @@ void TrimStringsDSplitString(DSplitString *splitString) {
 void DestroyDSplitString(DSplitString *splitString) {
     SDL_free(splitString);
 }
-
 
 // DFileBuffer
 

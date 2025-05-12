@@ -98,7 +98,8 @@ typedef struct {
 } DSplitString;
 
 
-DSplitString * CreateDSplitString(unsigned int maxCharsCount, unsigned int maxStringLength);
+DSplitString * CreateDSplitString(unsigned int maxStrSplitsCount, unsigned int maxStringLength);
+DSplitString * CreateStrDSplitString(unsigned int maxStrSplitsCount, const char *str);
 int splitDSplitString(DSplitString *splitString, const char *str, char delim, bool addEmpty);
 void SetMultiDelimDSplitString(DSplitString *splitString, char *mDelim);
 int splitMultiDelimDSplitString(DSplitString *splitString, const char *str, bool addEmpty);
