@@ -42,6 +42,14 @@ typedef struct {
     int         RendY;
 } DBMFONT;
 
+typedef enum {
+    BMFONT_ADJUST_SRC = 0,
+    BMFONT_ADJUST_DST = 1,
+    BMFONT_ADJUST_MID = 2
+} DBMFONT_ADJUST;
+
+typedef void (*OutTextBM16PTR)(const char*);
+
 extern DBMFONT       CurDBMFONT; // current active Bitmap FONT
 
 bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **newDBMFONT);
@@ -51,8 +59,11 @@ int  WidthBMText(DBMFONT *pBMFONT, const char *str); // text width in pixels
 int  WidthPosBMText(DBMFONT *pBMFONT, const char *str,int pos); // text width taking only Pos characters
 int  PosWidthBMText(DBMFONT *pBMFONT, const char *str,int width); // Position in *str if we progress by "width" pixels
 void OutTextBM16(const char *str);
-#define OutTextBM16Format(OutTextBM16, midStr, sizeMidStr, fmt, ...) \
-snprintf(midStr, sizeMidStr, fmt, __VA_ARGS__); OutTextBM16(midStr);
+#define OutTextBM16Format(OutTextBM16, midStr, sizeMidStr, fmt, ...) snprintf(midStr, sizeMidStr, fmt, __VA_ARGS__); OutTextBM16(midStr);
+void OutMultiLinesTextBM16(OutTextBM16PTR OutTextBM16Func, DBMFONT *pBMFONT, int textMaxX, int MaxLines, DBMFONT_ADJUST bmfont_adjust, const char *str);
+#define OutMultiLinesTextBM16Format(OutTextBM16Func, pBMFONT, textMaxX, maxLines, BMFONT_ADJUST, midStr, sizeMidStr, fmt, ...)\
+        snprintf(midStr, sizeMidStr, fmt, __VA_ARGS__);\
+        OutMultiLinesTextBM16(OutTextBM16Func, pBMFONT, textMaxX, maxLines, BMFONT_ADJUST, midStr);
 
 #ifdef __cplusplus
         }  // extern "C" {

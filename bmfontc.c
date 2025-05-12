@@ -241,14 +241,18 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
                             }
                         }
                         if (charAttsFound != 0xff) {
+                            printf("invalid char line %i\n", charID);
                             // invalid line, missing attributs
                         } else {
                             // convert to ascending
                             charOrgY = newBMFont->CharsMainSurf->MaxY - charY - charHEIGHT+1;
-                            DgView charView = { .OrgX = charX, .OrgY = charOrgY, .MinX = 0, .MinY = 0, .MaxX = charWIDTH-1, .MaxY = charHEIGHT-1 };
+
                             if (charX + charWIDTH <= newBMFont->CharsMainSurf->MaxX && charOrgY + charHEIGHT-1 <= newBMFont->CharsMainSurf->MaxY) {
-                                CreateSurfBuffView(&newBMFont->CharsSSurfs[charID], newBMFont->CharsMainSurf->ResH, newBMFont->CharsMainSurf->ResV, 16,
-                                                   (void*)newBMFont->CharsMainSurf->rlfb, &charView);
+                                if (charWIDTH > 0 && charHEIGHT > 0) {
+                                    DgView charView = { .OrgX = charX, .OrgY = charOrgY, .MinX = 0, .MinY = 0, .MaxX = charWIDTH-1, .MaxY = charHEIGHT-1 };
+                                    CreateSurfBuffView(&newBMFont->CharsSSurfs[charID], newBMFont->CharsMainSurf->ResH, newBMFont->CharsMainSurf->ResV, 16,
+                                                       (void*)newBMFont->CharsMainSurf->rlfb, &charView);
+                                }
                                 newBMFont->CharsPlusX[charID] = charXADVANCE;
                                 newBMFont->CharsXOffset[charID] = charXOFFSET;
                                 newBMFont->CharsYOffset[charID] = charYOFFSET;
@@ -318,4 +322,40 @@ int  WidthPosBMText(DBMFONT *pBMFONT, const char *str,int pos) {
         widthText += pBMFONT->CharsPlusX[(*strIt)];
     }
     return widthText;
+}
+
+void OutMultiLinesTextBM16(OutTextBM16PTR OutTextBM16Func, DBMFONT *pBMFONT, int textMaxX, int MaxLines, DBMFONT_ADJUST bmfont_adjust, const char *str) {
+    if (OutTextBM16Func == NULL || pBMFONT == NULL) {
+        return;
+    }
+    DSplitString *linesSplitter = CreateStrDSplitString(MaxLines, str);
+    if (linesSplitter == NULL) {
+        return;
+    }
+    int initX = pBMFONT->CharX;
+    int initY = pBMFONT->CharY;
+    int widthLineText = 0;
+
+    if (splitDSplitString(linesSplitter, NULL, '\n', true) > 0) {
+        for (int i = 0; i < linesSplitter->countStrings; i++) {
+            switch (bmfont_adjust) {
+            case BMFONT_ADJUST_SRC:
+                pBMFONT->CharX = initX;
+                break;
+            case BMFONT_ADJUST_DST:
+                widthLineText = WidthBMText(pBMFONT, linesSplitter->ListStrings[i]);
+                pBMFONT->CharX = textMaxX - widthLineText;
+                break;
+            case BMFONT_ADJUST_MID:
+                widthLineText = WidthBMText(pBMFONT, linesSplitter->ListStrings[i]);
+                pBMFONT->CharX = (initX+textMaxX) /2 - widthLineText / 2;
+                break;
+            default:
+                pBMFONT->CharX = initX;
+            }
+            pBMFONT->CharY = initY - (i* pBMFONT->CharsGHeight);
+            OutTextBM16Func(linesSplitter->ListStrings[i]);
+        }
+    }
+    DestroyDSplitString(linesSplitter);
 }
