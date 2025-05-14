@@ -1272,7 +1272,7 @@ void RenderWorkerFunc(void *, int ) {
                                 (pauseShadow)?"ON":"OFF");
             }
 		} else {
-            char *HelpInfoFormatMin =  "F1      Hide Help&Info\n";
+            char *HelpInfoFormatMin =  "F1      Show Help&Info\n";
             if (!useBMFont) {
                 OutText16ModeFormat(AJ_LEFT, text, SIZE_TEXT, HelpInfoFormatMin);
             } else {
