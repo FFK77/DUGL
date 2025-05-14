@@ -51,6 +51,8 @@ typedef enum {
 typedef void (*OutTextBM16PTR)(const char*);
 
 extern DBMFONT       CurDBMFONT; // current active Bitmap FONT
+extern DBMFONT       dummyDBMFONT; // dummy output less font
+
 
 bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **newDBMFONT);
 void DestroyBMFONT(DBMFONT *pBMFONT);
@@ -58,12 +60,19 @@ void SetCurBMFont(DBMFONT *pBMFONT);
 int  WidthBMText(DBMFONT *pBMFONT, const char *str); // text width in pixels
 int  WidthPosBMText(DBMFONT *pBMFONT, const char *str,int pos); // text width taking only Pos characters
 int  PosWidthBMText(DBMFONT *pBMFONT, const char *str,int width); // Position in *str if we progress by "width" pixels
-void OutTextBM16(const char *str);
-#define OutTextBM16Format(OutTextBM16, midStr, sizeMidStr, fmt, ...) snprintf(midStr, sizeMidStr, fmt, __VA_ARGS__); OutTextBM16(midStr);
+void OutTextBM16(const char *str); // output str in (CurDBMFONT.CharX, CurDBMFONT.CharY)
+// output multilines str ('\n' as line separator) between ([CurDBMFONT.CharX .. textMaxX], CurDBMFONT.CharY) depending on adjust param
 void OutMultiLinesTextBM16(OutTextBM16PTR OutTextBM16Func, DBMFONT *pBMFONT, int textMaxX, int MaxLines, DBMFONT_ADJUST bmfont_adjust, const char *str);
-#define OutMultiLinesTextBM16Format(OutTextBM16Func, pBMFONT, textMaxX, maxLines, BMFONT_ADJUST, midStr, sizeMidStr, fmt, ...)\
+// output formatted str in (CurDBMFONT.CharX, CurDBMFONT.CharY)
+#define OutTextBM16Format(OutTextBM16, midStr, sizeMidStr, fmt, ...) snprintf(midStr, sizeMidStr, fmt, __VA_ARGS__); OutTextBM16(midStr);
+// output formatted multilines str between ([CurDBMFONT.CharX .. textMaxX], CurDBMFONT.CharY) depending on adjust param
+#define OutMultiLinesTextBM16Format(OutTextBM16Func, pCurBMFONT, textMaxX, maxLines, BMFONT_ADJUST, midStr, sizeMidStr, fmt, ...)\
         snprintf(midStr, sizeMidStr, fmt, __VA_ARGS__);\
-        OutMultiLinesTextBM16(OutTextBM16Func, pBMFONT, textMaxX, maxLines, BMFONT_ADJUST, midStr);
+        OutMultiLinesTextBM16(OutTextBM16Func, pCurBMFONT, textMaxX, maxLines, BMFONT_ADJUST, midStr);
+// reset text pos on CurSurf view
+#define BMFONT_RESET_TEXTPOS(BMFONT, DGCURSURF) BMFONT.CharX = DGCURSURF.MinX;  BMFONT.CharY = DGCURSURF.MaxY - BMFONT.CharsGHeight;
+// set text pos (x, y) for next output
+#define BMFONT_SET_TEXTPOS(BMFONT, X, Y) BMFONT.CharX = (X);  BMFONT.CharY = (Y);
 
 #ifdef __cplusplus
         }  // extern "C" {

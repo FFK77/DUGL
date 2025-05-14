@@ -51,10 +51,10 @@ EXTERN  PntInitCPTDbrd, DGDQ0_1_2_3, DGDQInitCPTDbrd, NegDecPosInc, MaxPolyDelta
 EXTERN  MaskB_RGB16, MaskG_RGB16, MaskR_RGB16, RGB16_PntNeg, Mask2B_RGB16, Mask2G_RGB16, Mask2R_RGB16
 EXTERN  RGBDebMask_GGG, RGBDebMask_IGG, RGBDebMask_GIG, RGBDebMask_IIG, RGBDebMask_GGI, RGBDebMask_IGI, RGBDebMask_GII, RGBDebMask_III
 EXTERN  RGBFinMask_GGG, RGBFinMask_IGG, RGBFinMask_GIG, RGBFinMask_IIG, RGBFinMask_GGI, RGBFinMask_IGI, RGBFinMask_GII, RGBFinMask_III
+EXTERN  DgNanoSurf
 
 ; EXTERN Internal functions
 EXTERN  InHLineUVCompute, ClipHLineXCompute
-
 
 ; GLOBAL Constants
 MaxDblSidePolyPts     EQU 128
@@ -1567,31 +1567,31 @@ TexYDeb           RESD  MaxResV
 TexYFin           RESD  MaxResV
 PColDeb           RESD  MaxResV
 PColFin           RESD  MaxResV
-
 ; bitmap fonts data
 CurDBMFONT:
-BMCharsSSurfs      RESD  256
-BMCharsPlusX       RESD  256
-BMCharsWidth       RESD  256
-BMCharsHeight      RESD  256
-BMCharsXOffset     RESD  256
-BMCharsYOffset     RESD  256
-BMCharsGHeight     RESD  1
-BMCharsGLineHeight RESD  1
-BMCharX            RESD  1
-BMCharY            RESD  1
-BMCharCurChar      RESD  1
-BMCharsMainSurf    RESD  1
-BMCharsRendX       RESD  1
-BMCharsRendY       RESD  1;--------------
+BMCharsSSurfs      RESD    256
+BMCharsPlusX       RESD    256
+BMCharsWidth       RESD    256
+BMCharsHeight      RESD    256
+BMCharsXOffset     RESD    256
+BMCharsYOffset     RESD    256
+BMCharsGHeight     RESD    1
+BMCharsGLineHeight RESD    1
+BMCharX            RESD    1
+BMCharY            RESD    1
+BMCharCurChar      RESD    1
+BMCharsMainSurf    RESD    1
+BMCharsRendX       RESD    1
+BMCharsRendY       RESD    1;--------------
+
 
 QMulSrcBlend      RESD  4
 QMulDstBlend      RESD  4;--------------
 WBGR16Blend       RESD  4
-clr               RESD  1
+clr               RESD  4;-----------
 PolyMaxY          RESD  1
 PolyMinY          RESD  1
-TempD             RESD  1 ;-----------
+TempD             RESD  2;-----------
 QBlue16Blend      RESD  4
 QGreen16Blend     RESD  4
 QRed16Blend       RESD  4
@@ -1605,6 +1605,7 @@ SECTION .data   ALIGN=32
 
 AdrPolyFinDeb     DD  TPolyAdFin, TPolyAdDeb, 0, 0
 AdrPolyTexFinDeb  DD  TexYFin, TexYDeb, 0, 0
+
 ;* 16bpp poly proc****
 InFillPolyProc16:
     DD  InFillSOLID16, InFillTEXT16, InFillMASK_TEXT16, dummyFill16, dummyFill16 ; InFillFLAT_DEG,InFillDEG

@@ -84,19 +84,10 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
 	}
 
 	newBMFont->CharsMainSurf = AllCharsSurf;
-	// init BMFONT
-	newBMFont->CharsGHeight = 1;
-	newBMFont->CharsGLineHeight = 1;
-	newBMFont->CharX = 0;
-	newBMFont->CharY = 0;
-	//newBMFont->CharsMainSurf = NULL;
-	newBMFont->CharCurChar = 0;
-	SDL_memset4(newBMFont->CharsPlusX, 0, 256);
-	SDL_memset4(newBMFont->CharsWidth, 1, 256);
-	SDL_memset4(newBMFont->CharsHeight, 1, 256);
-	SDL_memset4(newBMFont->CharsXOffset, 0, 256);
-	SDL_memset4(newBMFont->CharsYOffset, 0, 256);
-	SDL_memset4(newBMFont->CharsSSurfs, (Uint32)(&DgNanoSurf), 256);
+	// init BMFONT with dummy
+	SDL_memcpy4(newBMFont, &dummyDBMFONT, sizeof(DBMFONT)/4);
+	// set main source DgSurf
+	newBMFont->CharsMainSurf = AllCharsSurf;
 
     // parse fnt description file
     char *nexBMLine = (char*)SDL_malloc(ListInfoLine->maxGlobLength+1);

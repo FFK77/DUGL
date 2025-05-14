@@ -41,7 +41,7 @@ GLOBAL  MaskB_RGB16, MaskG_RGB16, MaskR_RGB16, RGB16_PntNeg, Mask2B_RGB16, Mask2
 GLOBAL  RGBDebMask_GGG, RGBDebMask_IGG, RGBDebMask_GIG, RGBDebMask_IIG, RGBDebMask_GGI, RGBDebMask_IGI, RGBDebMask_GII, RGBDebMask_III
 GLOBAL  RGBFinMask_GGG, RGBFinMask_IGG, RGBFinMask_GIG, RGBFinMask_IIG, RGBFinMask_GGI, RGBFinMask_IGI, RGBFinMask_GII, RGBFinMask_III
 
-GLOBAL  DgNanoSurf, RendFrontSurf, RendSurf
+GLOBAL  DgNanoSurf, dummyDBMFONT, RendFrontSurf, RendSurf
 BITS 32
 
 SECTION .text  ALIGN=32
@@ -799,6 +799,22 @@ NNegScanLine        DD      -2
 NOffVMem            DD      0
 NBitsPixel          DD      16
 NSizeSurf           DD      2;-----------------------
+dummyDBMFONT:
+BMCharsSSurfs      DD    256 dup (DgNanoSurf)
+BMCharsPlusX       DD    256 dup (0)
+BMCharsWidth       DD    256 dup (1)
+BMCharsHeight      DD    256 dup (1)
+BMCharsXOffset     DD    256 dup (0)
+BMCharsYOffset     DD    256 dup (0)
+BMCharsGHeight     DD    1
+BMCharsGLineHeight DD    1
+BMCharX            DD    0
+BMCharY            DD    0
+BMCharCurChar      DD    0
+BMCharsMainSurf    DD    0
+BMCharsRendX       DD    0
+BMCharsRendY       DD    0;--------------
+
 
 ; BLENDING 16BPP ----------
 QBlue16Mask     DW  CMaskB_RGB16,CMaskB_RGB16,CMaskB_RGB16,CMaskB_RGB16
