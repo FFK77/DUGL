@@ -5,13 +5,13 @@
 /*  10 April 2023 : first release */
 /*  6 Aout 2023: Rework event/rendering loop and synching + implement gouroud shading + implement dual core rendering (left|right) view  */
 /*                implement full screen toggling + resize handling + several tweaks and performance increase ... */
-/* 12 Aout 2023: Add true VSync, try to fix hang when exiting directly from full screen under linux, enable double-buffering to reduce possible flicker under linux */
+/*  12 Aout 2023: Add true VSync, try to fix hang when exiting directly from full screen under linux, enable double-buffering to reduce possible flicker under linux */
 /*               + Add fps limiter with DgWaitVSync as it reduce flicker but dot not sync with screen freq */
-/* 31 March 2025: Add Multi-core resizing, Improve Multi-Core renderingf up to 4 cores, Add parametric High quality rendering from 1.1 to 3.0 ratio */
+/*  31 March 2025: Add Multi-core resizing, Improve Multi-Core renderingf up to 4 cores, Add parametric High quality rendering from 1.1 to 3.0 ratio */
 /*               with capability to change in real time, add background panoramic sky background, better keyboard shortcuts, Enable double-buffer, optimize polygones sorting */
 /*               Remove unecessera big memory geometry allocation, fix long standing camera concurrency between rendering/control threads, bug fixes, speed improvement ..  */
 /*               Add capability to show/hide info&help */
-
+/*  14 May 2025: Add Bitmap Font vs regular Font switching */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -295,6 +295,8 @@ DFace shadowFace;
 //******************
 // FONT
 FONT F1;
+// BMFONT
+DBMFONT *myBMFont = NULL;
 // functions
 bool ShowHelpInfo=true;
 bool SynchScreen=false;
@@ -304,6 +306,7 @@ bool highQRendering=false;
 bool fullScreen=false;
 bool exitApp=false;
 bool skyBack=true;
+bool useBMFont=true;
 bool takeScreenShot=false;
 bool refreshWindow=false;
 bool refreshLightening = false;
@@ -379,6 +382,17 @@ int main (int argc, char ** argv)
     }
     // generate sky cylinder geometry (uv or (xt, yt)) PolyPt and ListPtPoly
     GenSkyCylinderGeometry();
+
+    // load BMFONT
+    DgSurf *bmFontSurf = NULL;
+    if (LoadPNG16(&bmFontSurf, "../Asset/BMFONT/WhitePeaberryOutline.png") == 0) {
+		printf("failed to load BMFONT WhitePeaberryOutline.png image\n"); exit(-1);
+    }
+    if (LoadBMFONT("../Asset/BMFONT/WhitePeaberryOutline.fnt", bmFontSurf, &myBMFont)) {
+        SetCurBMFont(myBMFont);
+    } else {
+		printf("failed to load BMFONT WhitePeaberryOutline.txt font\n"); exit(-1);
+    }
 
     // load font
     if (!LoadFONT(&F1,"../Asset/FONT/HELLO.chr")) {
@@ -686,6 +700,9 @@ int main (int argc, char ** argv)
                 case KB_KEY_F8 :
                     skyBack = !skyBack;
                     break;
+                case KB_KEY_F9:
+                    useBMFont = !useBMFont;
+                    break;
                 case KB_KEY_F10 : // toggle full screen
                     if(!TryLockDMutex(renderMutex)) {
                         for (requestRenderMutex = true;requestRenderMutex;) DelayMs(1);
@@ -819,6 +836,7 @@ int main (int argc, char ** argv)
 	renderWorkerID = 0;
     DestroyDMutex(renderMutex);
     renderMutex = NULL;
+    DestroyBMFONT(myBMFont);
 
 
     DgQuit();
@@ -1197,20 +1215,30 @@ void RenderWorkerFunc(void *, int ) {
 
 		// restore original Screen View
 		DgSetCurSurf(RendSurf);
-		ClearText();
 		#define SIZE_TEXT 1023
-		char text[SIZE_TEXT + 1];
-		SetTextCol(0xffff);
-        OutText16ModeFormat(AJ_RIGHT, text, SIZE_TEXT, "FPS %i\n", finalCountFps);
+        char text[SIZE_TEXT + 1];
+
+        if (!useBMFont) {
+           SetTextCol(0xffff);
+           ClearText();
+           OutText16ModeFormat(AJ_RIGHT, text, SIZE_TEXT, "FPS %i\n", finalCountFps);
+        } else {
+           BMFONT_RESET_TEXTPOS(CurDBMFONT, CurSurf);
+           OutMultiLinesTextBM16Format(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_DST, text, SIZE_TEXT, "FPS %i\n", finalCountFps);
+        }
 
         if (accFps >= 1.0f) {
             finalCountFps = accCountFps;
             accFps -= 1.0f;
             accCountFps = 0;
         }
-		ClearText();
-		if (ShowHelpInfo) {
-            OutText16ModeFormat(AJ_LEFT, text, SIZE_TEXT,
+        if (!useBMFont) {
+           ClearText();
+        } else {
+            BMFONT_RESET_TEXTPOS(CurDBMFONT, CurSurf);
+        }
+        if (ShowHelpInfo) {
+            char *HelpInfoFormatMax =
                           "F1      Hide Help&Info\n"
                           "F2      Smoothing cores: %i\n"
                           "Shift+Left/Right  HQ Ratio %0.2f\n"
@@ -1220,18 +1248,36 @@ void RenderWorkerFunc(void *, int ) {
                           "F6      Rendering: %s\n"
                           "F7      Quality: %s\n"
                           "F8      Sky background: %s\n"
+                          "F9      Use Bitmap FONT: %s\n"
                           "F10     FullScreen: %s\n"
                           "Space   Pause: %s\n"
                           "Ctrl+Up/Down  Move Up/Down\n"
                           "Arrows  Move/Rotate\n"
-                          "Esc     Exit\n",
-                          smoothingCores, smoothSurfRatio,
-                          resizeCores, renderCores,
-                          (SynchScreen)?"ON":"OFF", (groundTextured)?"Textured":"SOLID",
-                          (highQRendering)?"High":"Low", (skyBack)?"Yes":"No", (fullScreen)?"Yes":"No",
-                          (pauseShadow)?"ON":"OFF");
+                          "Esc     Exit\n";
+            if (!useBMFont) {
+                OutText16ModeFormat(AJ_LEFT, text, SIZE_TEXT,
+                                HelpInfoFormatMax,
+                                smoothingCores, smoothSurfRatio,
+                                resizeCores, renderCores,
+                                (SynchScreen)?"ON":"OFF", (groundTextured)?"Textured":"SOLID",
+                                (highQRendering)?"High":"Low", (skyBack)?"Yes":"No", (useBMFont)?"Yes":"No", (fullScreen)?"Yes":"No",
+                                (pauseShadow)?"ON":"OFF");
+            } else {
+                OutMultiLinesTextBM16Format(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_SRC, text, SIZE_TEXT,
+                                HelpInfoFormatMax,
+                                smoothingCores, smoothSurfRatio,
+                                resizeCores, renderCores,
+                                (SynchScreen)?"ON":"OFF", (groundTextured)?"Textured":"SOLID",
+                                (highQRendering)?"High":"Low", (skyBack)?"Yes":"No", (useBMFont)?"Yes":"No", (fullScreen)?"Yes":"No",
+                                (pauseShadow)?"ON":"OFF");
+            }
 		} else {
-            OutText16ModeFormat(AJ_LEFT, text, SIZE_TEXT, "F1  Show Help&Info\n");
+            char *HelpInfoFormatMin =  "F1      Hide Help&Info\n";
+            if (!useBMFont) {
+                OutText16ModeFormat(AJ_LEFT, text, SIZE_TEXT, HelpInfoFormatMin);
+            } else {
+                OutMultiLinesTextBM16(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_SRC, HelpInfoFormatMin);
+            }
 		}
 
 		UnlockDMutex(renderMutex);
