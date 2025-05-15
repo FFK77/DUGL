@@ -358,14 +358,16 @@ DSplitString * CreateDSplitString(unsigned int maxStrSplitsCount, unsigned int m
 DSplitString * CreateStrDSplitString(unsigned int maxStrSplitsCount, const char *str) {
     DSplitString *splitString = NULL;
     unsigned int maxSplits = (maxStrSplitsCount > 0) ? maxStrSplitsCount : DEFAULT_DSPLITSTRING_CHARSCOUNT;
-    unsigned int maxStringLength = (str != NULL) ? (strlen(str)+1) : DEFAULT_DSPLITSTRING_GLOBSTRINGSIZE;
+    unsigned int lenStr = strlen(str);
+    unsigned int maxStringLength = (str != NULL) ? ((lenStr+1+4)&0xfffffffc) : DEFAULT_DSPLITSTRING_GLOBSTRINGSIZE; // round 4 (strlen+1) to keep alignement
     char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxStringLength + (sizeof(char*)*maxSplits));
     if (allBuff != NULL) {
         splitString = (DSplitString *)allBuff;
         splitString->globStr = &allBuff[sizeof(DSplitString)];
         if (str != NULL) {
-            strcpy(splitString->globStr, str);
-            splitString->globLen = maxStringLength - 1;
+            SDL_memcpy(splitString->globStr, str, lenStr);
+            splitString->globStr[lenStr] = '\0';
+            splitString->globLen = lenStr;
         } else {
             splitString->globStr[0]='\0';
             splitString->globLen = 0;
