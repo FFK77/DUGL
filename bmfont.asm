@@ -77,72 +77,13 @@ SetCurBMFont:
 .NotSet:
     RETURN
 
-ALIGN 4
-OutTextBM16:
-    ARG PBMStr, 4
-
-            PUSH        ESI
-            PUSH        EDI
-            PUSH        EBX
-
-            MOV         EDX,[EBP+PBMStr]
-            OR          EDX,EDX
-            JZ          .End              ; NULL pointer ?
-            MOVZX       EAX,BYTE [EDX]
-            OR          EAX,EAX
-            JZ          .End              ; End of the string ?
-
-            MOV         [BMCharCurChar], EAX ; save current rendered char
-            ; set first char DgSurf as srcSurf
-            MOV         ESI,[BMCharsSSurfs+EAX*4]
-            MOV         EDI,SrcSurf
-            CopySurfDA  ; copy surf
-
-.RendStrLoop:
-            MOV         ECX,[BMCharY]
-            PUSH        EDX
-            ADD         ECX,[BMCharsGHeight]
-            MOV         EDX,[BMCharsXOffset+EAX*4]
-            SUB         ECX,[BMCharsHeight+EAX*4]
-            ADD         EDX,[BMCharX]                ; = CurDBMFONT.CharX + myBMFont->CharsXOffset[*str];
-            SUB         ECX,[BMCharsYOffset+EAX*4]
-            MOV         [BMCharsRendX],EDX
-            MOV         [BMCharsRendY],ECX                 ; BMCharsRendY = BMCharY + CurDBMFONT.CharsGHeight - (CurDBMFONT.CharsHeight[*str] + CurDBMFONT.CharsYOffset[*str]);
-            CALL        PutBMChar16
-            MOV         EAX,[BMCharCurChar]           ; current rendered char
-            POP         EDX                           ; restore str pointer
-            MOV         EBP,[BMCharsPlusX+EAX*4]
-            INC         EDX                           ; increment str pointer
-            ADD         [BMCharX],EBP                 ; CurDBMFONT.CharX += CurDBMFONT.CharsPlusX[*str]
-            MOVZX       EAX,BYTE [EDX]
-            OR          EAX,EAX                       ; end of the string ?
-            JZ          SHORT .End
-            CMP         EAX,[BMCharCurChar]
-            JE          SHORT .NotSetSrcSurf
-            MOV         ESI,[BMCharsSSurfs+EAX*4]
-            MOV         EDI,SrcSurf
-            CopySurfDA  ; copy surf
-            MOV         [BMCharCurChar],EAX
-.NotSetSrcSurf:
-            JMP         .RendStrLoop
-
-.End:
-            POP         EBX
-            POP         EDI
-            POP         ESI
-
-    RETURN
-
-; PUT Bitmap character in SrcSurf into CurSurf at (BMCharsRendX, BMCharsRendY)
+; PUT Bitmap character in SrcSurf into CurSurf at (BMCharsRendX, BMCharsRendY)  and (ECX, EDX)
 ;*****************
 
-ALIGN 4
-PutBMChar16:
+%macro  @PutBMChar16 0
 
-            MOV         EAX,[BMCharsRendX]
-            MOV         EBX,[BMCharsRendY]
-            MOV         ECX,EAX
-            MOV         EDX,EBX
+            MOV         EAX,ECX
+            MOV         EBX,EDX
 
 ; --- compute Put coordinates of the View inside the Surf
 ; EAX: MaxX, EBX; MaxY, ECX: MinX, EDX: MnY
@@ -150,16 +91,16 @@ PutBMChar16:
             ADD         ECX,[SMinX] ; ECX = PutMinX
             ADD         EBX,[SMaxY] ; EBX = PutMaxY
             ADD         EDX,[SMinY] ; EDX = PutMinY
-.InvVtPut:
+
 ; InView inside (MinX, MinY, MaxX, MaxY)
             CMP         EAX,[MinX]
-            JL          .PasPutSurf
+            JL          %%PasPutSurf
             CMP         EBX,[MinY]
-            JL          .PasPutSurf
+            JL          %%PasPutSurf
             CMP         ECX,[MaxX]
-            JG          .PasPutSurf
+            JG          %%PasPutSurf
             CMP         EDX,[MaxY]
-            JG          .PasPutSurf
+            JG          %%PasPutSurf
 
             CMP         EAX,[MaxX]
             PSHUFLW     xmm0,[SMask],0
@@ -194,16 +135,16 @@ PutBMChar16:
             SUB         EDX,EDI ; MinX = ECX = posXPut - SOrgX
             SUB         EBX,EDI
             DEC         EBX         ; MaxX = EAX = posXPut + (SResH -1) - SOrgX
-.FInvVtPut:
+%%FInvVtPut:
 ;-----------------------------------------------
             CMP         EAX,[PutSurfMaxX]
-            JG          .PutSurfClip
+            JG          %%PutSurfClip
             CMP         EBX,[PutSurfMaxY]
-            JG          .PutSurfClip
+            JG          %%PutSurfClip
             CMP         ECX,[PutSurfMinX]
-            JL          .PutSurfClip
+            JL          %%PutSurfClip
             CMP         EDX,[PutSurfMinY]
-            JL          .PutSurfClip
+            JL          %%PutSurfClip
 ; PutSurf not Clipped *****************************
             MOV         EBP,[SResV]
             XOR         EAX,EAX
@@ -220,33 +161,33 @@ PutBMChar16:
             MOV         EDX,[SResH]
             MOV         [Plus],EAX
 
-.PutSurf:
+%%PutSurf:
             XOR         ECX,ECX
-.BcPutSurf:
+%%BcPutSurf:
             MOV         EBX,EDX
-.BcStBAv:
+%%BcStBAv:
             TEST        EDI,6   ; dword aligned ?
-            JZ          .FPasStBAv
+            JZ          %%FPasStBAv
             MOV         AX,[ESI]
             CMP         AX,[DQ16Mask]
             LEA         ESI,[ESI+2]
-            JZ          .PasStBAv
+            JZ          %%PasStBAv
             STOSW
             DEC         EBX
-            JZ          .FinSHLine
-            JMP         .BcStBAv
+            JZ          %%FinSHLine
+            JMP         %%BcStBAv
 
-.PasStBAv:
+%%PasStBAv:
             DEC         EBX
             LEA         EDI,[EDI+2]
-            JZ          .FinSHLine
-            JMP         .BcStBAv
-.FPasStBAv:
+            JZ          %%FinSHLine
+            JMP         %%BcStBAv
+%%FPasStBAv:
 ;--------
             TEST        EDI, 8
-            JZ          .PasStQAv
+            JZ          %%PasStQAv
             CMP         EBX,BYTE 4
-            JL          .StBAp
+            JL          %%StBAp
             MOVQ        xmm2,[ESI]
             MOVQ        xmm1,xmm2
             MOVQ        xmm0,xmm2
@@ -262,12 +203,12 @@ PutBMChar16:
             MOVQ        [EDI],xmm2
             LEA         ESI,[ESI+8]
             LEA         EDI,[EDI+8]
-.PasStQAv:
+%%PasStQAv:
 ;-------
             SHLD        ECX,EBX,29
-            JZ          .StBAp
+            JZ          %%StBAp
 ;ALIGN 4
-.StoSSE:
+%%StoSSE:
             MOVDQU      xmm2,[ESI]
             MOVDQA      xmm4,[EDI]
             MOVDQA      xmm1,xmm2
@@ -282,13 +223,13 @@ PutBMChar16:
             MOVDQA      [EDI],xmm2
             LEA         ESI,[ESI+16]
             LEA         EDI,[EDI+16]
-            JNZ         .StoSSE
-.StBAp:
+            JNZ         %%StoSSE
+%%StBAp:
             AND         BL,BYTE 7
-            JZ          .FinSHLine
-.StQAp:
+            JZ          %%FinSHLine
+%%StQAp:
             TEST        BL,4
-            JZ          .PasStQAp
+            JZ          %%PasStQAp
             MOVQ        xmm2,[ESI]
             MOVQ        xmm1,xmm2
             MOVQ        xmm0,xmm2
@@ -303,63 +244,63 @@ PutBMChar16:
             MOVQ        [EDI],xmm2
             LEA         ESI,[ESI+8]
             LEA         EDI,[EDI+8]
-.PasStQAp:
+%%PasStQAp:
             AND         BL,BYTE 3
-            JZ          SHORT .FinSHLine
+            JZ          SHORT %%FinSHLine
 
-.BcStBAp:
+%%BcStBAp:
             MOV         AX,[ESI]
             CMP         AX,[DQ16Mask]
             LEA         ESI,[ESI+2]
-            JZ          .BPasStBAp
+            JZ          %%BPasStBAp
             DEC         BL
             STOSW
-            JNZ         .BcStBAp
-            JMP         SHORT .FinSHLine
-.BPasStBAp:
+            JNZ         %%BcStBAp
+            JMP         SHORT %%FinSHLine
+%%BPasStBAp:
             DEC         BL
             LEA         EDI,[EDI+2]
-            JNZ         .BcStBAp
-.PasStBAp:
-.FinSHLine:
+            JNZ         %%BcStBAp
+%%PasStBAp:
+%%FinSHLine:
             ADD         EDI,[Plus2]
             ADD         ESI,[Plus]
             DEC         EBP
-            JNZ         .BcPutSurf
+            JNZ         %%BcPutSurf
 
-            JMP         .PasPutSurf
+            JMP         %%PasPutSurf
 
-.PutSurfClip:
+%%PutSurfClip:
 ; PutSurf Clipped **********************************************
             XOR         EDI,EDI   ; Y Fin Source
             XOR         ESI,ESI   ; X deb Source
 
             MOV         EBP,[PutSurfMinX]
             CMP         ECX,EBP ; CMP minx, MinX
-            JGE         .PsInfMinX   ; XP1<MinX
+            JGE         %%PsInfMinX   ; XP1<MinX
             MOV         ESI,EBP
             SUB         ESI,ECX ; ESI = MinX - XP2
             MOV         ECX,EBP
-.PsInfMinX:
+%%PsInfMinX:
             MOV         EBP,[PutSurfMaxY]
             CMP         EBX,EBP ; cmp maxy, MaxY
-            JLE         .PsSupMaxY   ; YP2>MaxY
+            JLE         %%PsSupMaxY   ; YP2>MaxY
             MOV         EDI,EBP
             NEG         EDI
             ;MOV        [YP2],EBP
             ADD         EDI,EBX
             MOV         EBX,EBP
-.PsSupMaxY:
+%%PsSupMaxY:
             MOV         EBP,[PutSurfMinY]
             CMP         EDX,EBP      ; YP1<MinY
-            JGE         .PsInfMinY
+            JGE         %%PsInfMinY
             MOV         EDX,EBP
-.PsInfMinY:
+%%PsInfMinY:
             MOV         EBP,[PutSurfMaxX]
             CMP         EAX,EBP      ; XP2>MaxX
-            JLE         .PsSupMaxX
+            JLE         %%PsSupMaxX
             MOV         EAX,EBP
-.PsSupMaxX:
+%%PsSupMaxX:
             SUB         EAX,ECX      ; XP2 - XP1
             MOV         EBP,[SScanLine]
             LEA         EAX,[EAX*2+2]
@@ -386,9 +327,62 @@ PutBMChar16:
 
             MOVD        EDX,xmm0  ; DeltaX
             ADD         [Plus],EAX
-            JMP         .PutSurf
+            JMP         %%PutSurf
 
-.PasPutSurf:
+%%PasPutSurf:
 
-            RET
+%endmacro
+
+
+ALIGN 4
+OutTextBM16:
+    ARG PBMStr, 4
+
+            PUSH        ESI
+            PUSH        EDI
+            PUSH        EBX
+
+            MOV         EDX,[EBP+PBMStr]
+            XOR         EAX,EAX
+            OR          EDX,EDX
+            JZ          .End              ; NULL pointer ?
+            OR          AL,[EDX]
+            JNZ         .SetSrcSurfAndRend   ; not empty string ?
+            JMP         .End
+
+.RendStrLoop:
+            PUSH        EDX
+            MOV         ECX,[BMCharsXOffset+EAX*4]
+            MOV         EDX,[BMCharY]
+            ADD         ECX,[BMCharX]                ; = CurDBMFONT.CharX + myBMFont->CharsXOffset[*str];
+            ADD         EDX,[BMCharsGHeight]
+            MOV         [BMCharsRendX],ECX
+            SUB         EDX,[BMCharsHeight+EAX*4]
+            SUB         EDX,[BMCharsYOffset+EAX*4]
+            MOV         [BMCharsRendY],EDX                 ; BMCharsRendY = BMCharY + CurDBMFONT.CharsGHeight - (CurDBMFONT.CharsHeight[*str] + CurDBMFONT.CharsYOffset[*str]);
+            @PutBMChar16
+            MOV         EAX,[BMCharCurChar]           ; current rendered char
+            POP         EDX                           ; restore str pointer
+            MOV         EBP,[BMCharsPlusX+EAX*4]
+            INC         EDX                           ; increment str pointer
+            XOR         AL,AL
+            ADD         [BMCharX],EBP                 ; CurDBMFONT.CharX += CurDBMFONT.CharsPlusX[*str]
+            OR          AL,[EDX]                      ; end of the string ?
+            JZ          SHORT .End
+            CMP         AL,[BMCharCurChar]
+            JE          SHORT .NotSetSrcSurf
+.SetSrcSurfAndRend:
+            MOV         ESI,[BMCharsSSurfs+EAX*4]
+            MOV         EDI,SrcSurf
+            CopySurfDA  ; copy surf
+            MOV         [BMCharCurChar],EAX
+.NotSetSrcSurf:
+            JMP         .RendStrLoop
+
+.End:
+            POP         EBX
+            POP         EDI
+            POP         ESI
+
+    RETURN
 
