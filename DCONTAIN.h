@@ -125,15 +125,18 @@ typedef struct  {
                        m_sizeBuff,
                        m_readWorkerID;
     FILE              *m_file;
+    void              *m_data;
     DFileBufferReadJob m_ReadJob;
     bool               m_EOF;
 } DFileBuffer;
 
 DFileBuffer* CreateDFileBuffer(unsigned int sizeBuff);
+DFileBuffer* CreateMemDFileBuffer(void *buff, unsigned int sizeBuff);
+DFileBuffer* CreateMemDFileBufferFromFile(const char *filename, const char *openmode);
 void DestroyDFileBuffer(DFileBuffer *ptr);
 bool OpenFileDFileBuffer(DFileBuffer *ptr, const char *filename, const char *openmode);
 void CloseFileDFileBuffer(DFileBuffer *ptr);
-bool FseekDFileBuffer(DFileBuffer *ptr, long int offset, int origin);
+bool FseekDFileBuffer(DFileBuffer *ptr, int offset, int origin);
 bool RewindDFileBuffer(DFileBuffer *fbuff);
 unsigned int GetBytesDFileBuffer(DFileBuffer *fbuff, void *buff, unsigned int bytesToGet);
 unsigned int GetLineDFileBuffer(DFileBuffer *ptr, char *line, unsigned int maxLineSize);

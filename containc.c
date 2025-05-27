@@ -554,11 +554,54 @@ DFileBuffer* CreateDFileBuffer(unsigned int sizeBuff) {
         fileBuff->m_bytesInBuff = 0;
         fileBuff->m_curPos = 0;
         fileBuff->m_file = NULL;
+        fileBuff->m_data = NULL;
         fileBuff->m_EOF = false;
         fileBuff->m_readWorkerID = CreateDWorker(readWorkerFunctionDFBuff, &fileBuff->m_ReadJob);
     }
 
     return fileBuff;
+}
+
+DFileBuffer* CreateMemDFileBuffer(void *buff, unsigned int sizeBuff) {
+    if (buff == NULL || sizeBuff < 1)
+        return NULL;
+    DFileBuffer* fileBuff = (DFileBuffer*)SDL_malloc(SIZE_DFB16);
+    if (fileBuff != NULL) {
+        SDL_memset4(fileBuff, 0, SIZE_DFB16/4);
+        fileBuff->m_buffRead = (char*)(buff);
+        fileBuff->m_buffReadWorker = NULL;
+        fileBuff->m_sizeBuff = sizeBuff;
+        fileBuff->m_bytesInBuff = sizeBuff;
+        fileBuff->m_curPos = 0;
+        fileBuff->m_file = NULL;
+        fileBuff->m_data = buff;
+        fileBuff->m_EOF = true;
+        fileBuff->m_readWorkerID = 0;
+    }
+
+    return fileBuff;
+}
+
+DFileBuffer* CreateMemDFileBufferFromFile(const char *filename, const char *openmode) {
+    DFileBuffer *pfileBuff = NULL;
+    FILE *dmemFILE = fopen(filename, openmode);
+    int dmemFileSize = 0;
+    if (dmemFILE != NULL) {
+        if (fseek(dmemFILE, 0, SEEK_END) == 0) {
+            dmemFileSize = ftell(dmemFILE);
+            if (fseek(dmemFILE, 0, SEEK_SET) == 0) {
+                char *buff = (char*)SDL_malloc(dmemFileSize);
+                if (buff != NULL) {
+                    if ((pfileBuff = CreateMemDFileBuffer(buff, (unsigned int)(dmemFileSize))) == NULL)
+                        SDL_free(buff);
+                    else
+                        fread(buff, 1, (size_t)dmemFileSize, dmemFILE); \
+                }
+            }
+        }
+        fclose(dmemFILE);
+    }
+    return pfileBuff;
 }
 
 void DestroyDFileBuffer(DFileBuffer *pFileBuff) {
@@ -567,6 +610,7 @@ void DestroyDFileBuffer(DFileBuffer *pFileBuff) {
         pFileBuff->m_readWorkerID = 0;
     }
     CloseFileDFileBuffer(pFileBuff);
+    SDL_memset4(pFileBuff, 0, SIZE_DFB16/4);
     SDL_free(pFileBuff);
 }
 
@@ -574,14 +618,15 @@ void CloseFileDFileBuffer(DFileBuffer *pFileBuff) {
     if (pFileBuff->m_file != NULL) {
         fclose(pFileBuff->m_file);
         pFileBuff->m_file = NULL;
-        pFileBuff->m_bytesInBuff = 0;
-        pFileBuff->m_curPos = 0;
     }
+    pFileBuff->m_bytesInBuff = 0;
+    pFileBuff->m_curPos = 0;
 }
 
 void ReadChunkDFileBuffer(DFileBuffer *pFileBuff) {
     char *tmpBuff = NULL;
-    if (pFileBuff->m_EOF) {
+    // EndOfFile or memory DFileBuffer
+    if (pFileBuff->m_EOF || pFileBuff->m_file == NULL) {
         return;
     }
     WaitDWorker(pFileBuff->m_readWorkerID);
@@ -602,6 +647,8 @@ void ReadChunkDFileBuffer(DFileBuffer *pFileBuff) {
 }
 
 void InitFirstReadDFileBuffer(DFileBuffer *fbuff) {
+    if (fbuff->m_file == NULL)
+        return;
     fbuff->m_ReadJob.m_buffRead = fbuff->m_buffReadWorker;
     fbuff->m_ReadJob.m_file = fbuff->m_file;
     fbuff->m_ReadJob.m_sizeBuff = fbuff->m_sizeBuff;
@@ -612,7 +659,8 @@ void InitFirstReadDFileBuffer(DFileBuffer *fbuff) {
 }
 
 bool OpenFileDFileBuffer(DFileBuffer *fbuff, const char *filename, const char *openmode) {
-    if (fbuff->m_file != NULL || fbuff->m_readWorkerID == 0)
+    // fail if memory DFileBuffer or already open or failed to allocated read DWorker
+    if (fbuff->m_data != NULL || fbuff->m_file != NULL || fbuff->m_readWorkerID == 0)
         return false;
     if ((fbuff->m_file = fopen(filename, openmode)) == NULL)
         return false;
@@ -620,10 +668,51 @@ bool OpenFileDFileBuffer(DFileBuffer *fbuff, const char *filename, const char *o
     return true;
 }
 
-bool FseekDFileBuffer(DFileBuffer *fbuff, long int offset, int origin) {
-    if (fbuff->m_file == NULL)
-        return false;
+bool FseekDFileBuffer(DFileBuffer *fbuff, int offset, int origin) {
+    if (fbuff->m_file == NULL) {
+        if (fbuff->m_data != NULL) {
+            // nothing todo ?
+            if (offset == 0)
+                return true;
+            // handle mem seek ========================
+            switch (origin) {
+            case SEEK_SET:
+                if (offset < fbuff->m_sizeBuff && offset >= 0) {
+                    fbuff->m_curPos = offset;
+                    fbuff->m_bytesInBuff = fbuff->m_sizeBuff - fbuff->m_curPos;
+                    return true;
+                } else
+                    return false;
+                break;
+            case SEEK_END:
+                if (offset < fbuff->m_sizeBuff && offset >= 0) {
+                    fbuff->m_curPos = fbuff->m_sizeBuff - 1 - offset;
+                    fbuff->m_bytesInBuff = fbuff->m_sizeBuff - fbuff->m_curPos;
+                    return true;
+                } else
+                    return false;
+                break;
+            case SEEK_CUR:
+                if (offset < 0) {
+                    if (fbuff->m_curPos >= (unsigned int)(-offset)){
+                        fbuff->m_curPos -= (unsigned int)(-offset);
+                    } else
+                        return false;
+                } else { // (offset > 0)
+                    if (fbuff->m_curPos + (unsigned int)(offset) < fbuff->m_sizeBuff) {
+                        fbuff->m_curPos += (unsigned int)(offset);
+                    } else
+                        return false;
+                }
+                fbuff->m_bytesInBuff = fbuff->m_sizeBuff - fbuff->m_curPos;
+                return true;
+                break;
+            }
 
+        } else
+            return false;
+    }
+    // handle file seek ================================
     if (fseek(fbuff->m_file, offset, origin) != 0) {
         fbuff->m_bytesInBuff = 0;
         fbuff->m_EOF = true;
@@ -641,7 +730,7 @@ unsigned int GetBytesDFileBuffer(DFileBuffer *fbuff, void *buff, unsigned int by
     unsigned int bytesCopied = 0,
                  remainBytesToGet = bytesToGet;
     char * cbuff = (char*) buff;
-    if (fbuff->m_file == NULL)
+    if (fbuff->m_file == NULL && fbuff->m_data == NULL)
         return 0;
     if (fbuff->m_bytesInBuff == 0) {
         if (fbuff->m_EOF)
@@ -691,7 +780,7 @@ unsigned int GetLineDFileBuffer(DFileBuffer *fbuff, char *line, unsigned int max
                     startPos = fbuff->m_curPos;
     bool            endLine = false;
 
-    if (fbuff->m_file == NULL)
+    if (fbuff->m_file == NULL && fbuff->m_data == NULL)
         return 0;
     if (fbuff->m_bytesInBuff == 0) {
         if (fbuff->m_EOF)
@@ -701,18 +790,18 @@ unsigned int GetLineDFileBuffer(DFileBuffer *fbuff, char *line, unsigned int max
             return 0;
         startPos = 0;
     }
-
     for (i=0; i <maxLineSize-1; i++) {
-        if (fbuff->m_buffRead[fbuff->m_curPos] == '\n'/* || m_buffRead[m_curPos] == '\r'*/) {
+        if (fbuff->m_buffRead[fbuff->m_curPos] == '\n' || fbuff->m_buffRead[fbuff->m_curPos] == '\r') {
             fbuff->m_curPos++;
             fbuff->m_bytesInBuff--;
-            // check if next byte too is one of line terminator
+            // read next chunk if required and copy
             if (fbuff->m_bytesInBuff < 1) {
                 SDL_memcpy(&line[bytesCopied], &fbuff->m_buffRead[startPos], sizeLine - bytesCopied);
-                bytesCopied = sizeLine;
+                bytesCopied += sizeLine;
                 ReadChunkDFileBuffer(fbuff);
             }
-            if (fbuff->m_bytesInBuff > 0 && (/*m_buffRead[m_curPos] == '\n' ||*/ fbuff->m_buffRead[fbuff->m_curPos] == '\r')) {
+            // check if next byte too is one of line terminator
+            if (fbuff->m_bytesInBuff > 0 && (fbuff->m_buffRead[fbuff->m_curPos] == '\n' || fbuff->m_buffRead[fbuff->m_curPos] == '\r')) {
                 fbuff->m_curPos++;
                 fbuff->m_bytesInBuff--;
             }
@@ -751,6 +840,3 @@ unsigned int GetLineDFileBuffer(DFileBuffer *fbuff, char *line, unsigned int max
 bool IsEndOfFileDFileBuffer(DFileBuffer *fbuff) {
     return fbuff->m_EOF && (fbuff->m_bytesInBuff == 0);
 };
-
-
-
