@@ -292,6 +292,7 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
                     break;
                 default:
                     // ignore / issue warning ?
+                    break;
 
             }
         }
