@@ -120,8 +120,8 @@ typedef struct {
 typedef struct  {
     char              *m_buffRead;
     char              *m_buffReadWorker;
-    unsigned int       m_curPos,
-                       m_bytesInBuff,
+    int64_t            m_curPos;
+    unsigned int       m_bytesInBuff,
                        m_sizeBuff,
                        m_readWorkerID;
     FILE              *m_file;
@@ -136,7 +136,7 @@ DFileBuffer* CreateMemDFileBufferFromFile(const char *filename, const char *open
 void DestroyDFileBuffer(DFileBuffer *ptr);
 bool OpenFileDFileBuffer(DFileBuffer *ptr, const char *filename, const char *openmode);
 void CloseFileDFileBuffer(DFileBuffer *ptr);
-bool FseekDFileBuffer(DFileBuffer *ptr, int offset, int origin);
+bool FseekDFileBuffer(DFileBuffer *ptr, int64_t offset, int origin);
 bool RewindDFileBuffer(DFileBuffer *fbuff);
 unsigned int GetBytesDFileBuffer(DFileBuffer *fbuff, void *buff, unsigned int bytesToGet);
 unsigned int GetLineDFileBuffer(DFileBuffer *ptr, char *line, unsigned int maxLineSize);

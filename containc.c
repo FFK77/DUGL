@@ -340,13 +340,13 @@ DSplitString * CreateDSplitString(unsigned int maxStrSplitsCount, unsigned int m
     DSplitString *splitString = NULL;
     unsigned int maxSplits = (maxStrSplitsCount > 0) ? maxStrSplitsCount : DEFAULT_DSPLITSTRING_CHARSCOUNT;
     unsigned int maxString = (maxStringLength > 0) ? maxStringLength : DEFAULT_DSPLITSTRING_GLOBSTRINGSIZE;
-    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxString + (sizeof(char*)*maxSplits));
+    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(bool)*256) + maxString + (sizeof(char*)*maxSplits));
     if (allBuff != NULL) {
         splitString = (DSplitString *)allBuff;
         splitString->globStr = &allBuff[sizeof(DSplitString)];
         splitString->globStr[0]='\0';
         splitString->multiDelim = (bool*)&allBuff[sizeof(DSplitString)+maxString];
-        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxString+(sizeof(char)*256)];
+        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxString+(sizeof(bool)*256)];
         splitString->globLen = 0;
         splitString->maxGlobLength = maxString - 1;
         splitString->maxCountStrings = maxSplits;
@@ -360,7 +360,7 @@ DSplitString * CreateStrDSplitString(unsigned int maxStrSplitsCount, const char 
     unsigned int maxSplits = (maxStrSplitsCount > 0) ? maxStrSplitsCount : DEFAULT_DSPLITSTRING_CHARSCOUNT;
     unsigned int lenStr = strlen(str);
     unsigned int maxStringLength = (str != NULL) ? ((lenStr+1+4)&0xfffffffc) : DEFAULT_DSPLITSTRING_GLOBSTRINGSIZE; // round 4 (strlen+1) to keep alignement
-    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(char)*256) + maxStringLength + (sizeof(char*)*maxSplits));
+    char *allBuff = (char*)SDL_malloc(sizeof(DSplitString) + (sizeof(bool)*256) + maxStringLength + (sizeof(char*)*maxSplits));
     if (allBuff != NULL) {
         splitString = (DSplitString *)allBuff;
         splitString->globStr = &allBuff[sizeof(DSplitString)];
@@ -373,7 +373,7 @@ DSplitString * CreateStrDSplitString(unsigned int maxStrSplitsCount, const char 
             splitString->globLen = 0;
         }
         splitString->multiDelim = (bool*)&allBuff[sizeof(DSplitString)+maxStringLength];
-        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxStringLength+(sizeof(char)*256)];
+        splitString->ListStrings = (char **)&allBuff[sizeof(DSplitString)+maxStringLength+(sizeof(bool)*256)];
         splitString->maxGlobLength = maxStringLength - 1;
         splitString->maxCountStrings = maxSplits;
         splitString->countStrings = 0;
@@ -421,7 +421,7 @@ void SetMultiDelimDSplitString(DSplitString *splitString, char *mDelim) {
     SDL_memset(splitString->multiDelim, 0, (sizeof(char)*256));
     // enable splitting for each char on the *mDelim string
     for (; *s != 0; s++)
-        splitString->multiDelim[*s] = true;
+        splitString->multiDelim[(unsigned char)(*s)] = true;
 }
 
 int splitMultiDelimDSplitString(DSplitString *splitString, const char *str, bool addEmpty) {
@@ -668,7 +668,8 @@ bool OpenFileDFileBuffer(DFileBuffer *fbuff, const char *filename, const char *o
     return true;
 }
 
-bool FseekDFileBuffer(DFileBuffer *fbuff, int offset, int origin) {
+bool FseekDFileBuffer(DFileBuffer *fbuff, int64_t offset, int origin) {
+    // handle memory DFileBuffer
     if (fbuff->m_file == NULL) {
         if (fbuff->m_data != NULL) {
             // nothing todo ?
@@ -677,16 +678,16 @@ bool FseekDFileBuffer(DFileBuffer *fbuff, int offset, int origin) {
             // handle mem seek ========================
             switch (origin) {
             case SEEK_SET:
-                if (offset < fbuff->m_sizeBuff && offset >= 0) {
+                if (offset < (int64_t)fbuff->m_sizeBuff && offset >= 0) {
                     fbuff->m_curPos = offset;
-                    fbuff->m_bytesInBuff = fbuff->m_sizeBuff - fbuff->m_curPos;
+                    fbuff->m_bytesInBuff = fbuff->m_sizeBuff - (unsigned int)fbuff->m_curPos;
                     return true;
                 } else
                     return false;
                 break;
             case SEEK_END:
-                if (offset < fbuff->m_sizeBuff && offset >= 0) {
-                    fbuff->m_curPos = fbuff->m_sizeBuff - 1 - offset;
+                if (offset < (_off64_t)fbuff->m_sizeBuff && offset >= 0) {
+                    fbuff->m_curPos = fbuff->m_sizeBuff - 1 - (unsigned int)offset;
                     fbuff->m_bytesInBuff = fbuff->m_sizeBuff - fbuff->m_curPos;
                     return true;
                 } else
@@ -694,13 +695,13 @@ bool FseekDFileBuffer(DFileBuffer *fbuff, int offset, int origin) {
                 break;
             case SEEK_CUR:
                 if (offset < 0) {
-                    if (fbuff->m_curPos >= (unsigned int)(-offset)){
-                        fbuff->m_curPos -= (unsigned int)(-offset);
+                    if (fbuff->m_curPos >= (-offset)){
+                        fbuff->m_curPos -= (-offset);
                     } else
                         return false;
                 } else { // (offset > 0)
-                    if (fbuff->m_curPos + (unsigned int)(offset) < fbuff->m_sizeBuff) {
-                        fbuff->m_curPos += (unsigned int)(offset);
+                    if ((fbuff->m_curPos + offset) < fbuff->m_sizeBuff) {
+                        fbuff->m_curPos += offset;
                     } else
                         return false;
                 }
@@ -712,8 +713,8 @@ bool FseekDFileBuffer(DFileBuffer *fbuff, int offset, int origin) {
         } else
             return false;
     }
-    // handle file seek ================================
-    if (fseek(fbuff->m_file, offset, origin) != 0) {
+    // else handle FILE seek ================================
+    if (fseeko64(fbuff->m_file, offset, origin) != 0) {
         fbuff->m_bytesInBuff = 0;
         fbuff->m_EOF = true;
         return false;
