@@ -20,6 +20,7 @@
 #define DUGL_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "DERRS.h"
 #include "DWORKER.h"

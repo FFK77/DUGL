@@ -1,25 +1,7 @@
-/*  Dust Ultimate Game Library (DUGL)
-    Copyright (C) 2025  Fakhri Feki
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-    contact: libdugl(at)hotmail.com    */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <SDL2/SDL.h>
+#include <string.h>
 
 #include "DUGL.h"
 #include "intrndugl.h"
@@ -32,9 +14,9 @@ unsigned int MaxDWorkersCount = 0;
 unsigned int FirstFreeDWorkerID = 0;
 bool *conditionsDWorker = NULL;
 bool *killsDWorker = NULL;
-SDL_mutex **locksDworker = NULL;
-SDL_cond **condsDworker = NULL;
-SDL_Thread **threadsDWorker = NULL;
+pthread_mutex_t  **locksDworker = NULL;
+pthread_cond_t  **condsDworker = NULL;
+pthread_t  **threadsDWorker = NULL;
 dworkerFunctionPointer *funcsDWorker = NULL;
 void **paramsDWorker = NULL;
 unsigned int *dataThreadsID = NULL;
@@ -43,23 +25,23 @@ bool InitDWorkers(unsigned int MAX_DWorkers) {
     if (countDWorker > 0 || (MAX_DWorkers > 0 && MAX_DWorkers < 4))
         return false;
     unsigned int maxDWorkers = (MAX_DWorkers == 0) ? DWORKERS_DEFAULT_MAX_COUNT : MAX_DWorkers;
-    conditionsDWorker = (bool *)SDL_malloc(sizeof(bool)*maxDWorkers);
-    killsDWorker = (bool *)SDL_malloc(sizeof(bool)*maxDWorkers);
-    locksDworker = (SDL_mutex **)SDL_malloc(sizeof(SDL_mutex *)*maxDWorkers);
-    condsDworker = (SDL_cond **)SDL_malloc(sizeof(SDL_cond *)*maxDWorkers);
-    threadsDWorker = (SDL_Thread **)SDL_malloc(sizeof(SDL_Thread *)*maxDWorkers);
-    funcsDWorker = (dworkerFunctionPointer *)SDL_malloc(sizeof(dworkerFunctionPointer)*maxDWorkers);
-    paramsDWorker = (void**)SDL_malloc(sizeof(void *)*maxDWorkers);
-    dataThreadsID = (unsigned int*)SDL_malloc(sizeof(unsigned int)*maxDWorkers);
+    conditionsDWorker = (bool *)malloc(sizeof(bool)*maxDWorkers);
+    killsDWorker = (bool *)malloc(sizeof(bool)*maxDWorkers);
+    locksDworker = (pthread_mutex_t **)malloc(sizeof(pthread_mutex_t *)*maxDWorkers);
+    condsDworker = (pthread_cond_t **)malloc(sizeof(pthread_cond_t *)*maxDWorkers);
+    threadsDWorker = (pthread_t **)malloc(sizeof(pthread_t *)*maxDWorkers);
+    funcsDWorker = (dworkerFunctionPointer *)malloc(sizeof(dworkerFunctionPointer)*maxDWorkers);
+    paramsDWorker = (void**)malloc(sizeof(void *)*maxDWorkers);
+    dataThreadsID = (unsigned int*)malloc(sizeof(unsigned int)*maxDWorkers);
     if (conditionsDWorker != NULL && locksDworker != NULL && condsDworker != NULL && threadsDWorker != NULL &&
             paramsDWorker != NULL && dataThreadsID != NULL) {
         MaxDWorkersCount = maxDWorkers;
-        SDL_memset4(conditionsDWorker, 0, sizeof(bool)*maxDWorkers/4);
-        SDL_memset4(killsDWorker, 0, sizeof(bool)*maxDWorkers/4);
-        SDL_memset4(locksDworker, 0, sizeof(SDL_mutex *)*maxDWorkers/4);
-        SDL_memset4(condsDworker, 0, sizeof(SDL_cond *)*maxDWorkers/4);
-        SDL_memset4(threadsDWorker, 0, sizeof(SDL_Thread *)*maxDWorkers/4);
-        SDL_memset4(paramsDWorker, 0, sizeof(void *)*maxDWorkers/4);
+        memset(conditionsDWorker, 0, sizeof(bool)*maxDWorkers);
+        memset(killsDWorker, 0, sizeof(bool)*maxDWorkers);
+        memset(locksDworker, 0, sizeof(pthread_mutex_t *)*maxDWorkers);
+        memset(condsDworker, 0, sizeof(pthread_cond_t *)*maxDWorkers);
+        memset(threadsDWorker, 0, sizeof(pthread_t *)*maxDWorkers);
+        memset(paramsDWorker, 0, sizeof(void *)*maxDWorkers);
         for (unsigned int i=0; i<maxDWorkers; i++) dataThreadsID[i] = i+1;
         FirstFreeDWorkerID = 0;
         return true;
@@ -77,19 +59,19 @@ void DestroyDWorkers() {
     }
     // free allocated mem
     if (conditionsDWorker != NULL)
-        SDL_free(conditionsDWorker);
+        free(conditionsDWorker);
     if (killsDWorker != NULL)
-        SDL_free(killsDWorker);
+        free(killsDWorker);
     if (locksDworker != NULL)
-        SDL_free(locksDworker);
+        free(locksDworker);
     if (condsDworker != NULL)
-        SDL_free(condsDworker);
+        free(condsDworker);
     if (threadsDWorker != NULL)
-        SDL_free(threadsDWorker);
+        free(threadsDWorker);
     if (paramsDWorker != NULL)
-        SDL_free(paramsDWorker);
+        free(paramsDWorker);
     if (dataThreadsID != NULL)
-        SDL_free(dataThreadsID);
+        free(dataThreadsID);
 
     countDWorker = 0;
     MaxDWorkersCount = 0;
@@ -102,36 +84,31 @@ void DestroyDWorkers() {
     dataThreadsID = NULL;
 }
 
-static int WorkerThreadFunction(void *ptr) {
+static void * WorkerThreadFunction(void *ptr) {
     unsigned int myIdx = *(unsigned int*)(ptr);
     if (MaxDWorkersCount == 0 || myIdx == 0 || myIdx > MaxDWorkersCount)
         return 0;
     myIdx --;
     for(;!killsDWorker[myIdx];) {
-        SDL_LockMutex(locksDworker[myIdx]);
+        pthread_mutex_lock(locksDworker[myIdx]);
         while (!conditionsDWorker[myIdx]) {
-            SDL_CondWait(condsDworker[myIdx], locksDworker[myIdx]);
+            pthread_cond_wait(condsDworker[myIdx], locksDworker[myIdx]);
         }
         if (funcsDWorker[myIdx] != NULL && !killsDWorker[myIdx]) {
             funcsDWorker[myIdx](paramsDWorker[myIdx], *(int*)ptr);
         }
         conditionsDWorker[myIdx] = false;
-        SDL_UnlockMutex(locksDworker[myIdx]);
+        pthread_mutex_unlock(locksDworker[myIdx]);
     }
     killsDWorker[myIdx] = false;
 
     return 0;
 }
 
-int WorkerPriority[4] = {
-    (int)SDL_THREAD_PRIORITY_TIME_CRITICAL,
-    (int)SDL_THREAD_PRIORITY_HIGH,
-    (int)SDL_THREAD_PRIORITY_NORMAL,
-    (int)SDL_THREAD_PRIORITY_LOW
-};
+int WorkerPriority[4] = { 0, 1, 2, 3 };
 
 void SetDWorkerPriority(int priority) {
-    SDL_SetThreadPriority((SDL_ThreadPriority)(WorkerPriority[priority%4]));
+    // dummy
 }
 
 void SetDWorkerDataPtr(unsigned int dworkerID, void *dataPtr) {
@@ -168,17 +145,51 @@ unsigned int findFirstFreeDWorkerID() {
 
 unsigned int CreateDWorker(dworkerFunctionPointer workerFunction, void *workerData) {
     unsigned int newWorkerIdx = 0;
-    char nameWorker[12];
-    if (countDWorker >= MaxDWorkersCount)
+    if (countDWorker >= MaxDWorkersCount) {
         return 0;
+    }
     newWorkerIdx = FirstFreeDWorkerID;
-    sprintf(nameWorker, "DWorker%d", newWorkerIdx);
+    conditionsDWorker[newWorkerIdx] = false;
+    locksDworker[newWorkerIdx] = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
+    condsDworker[newWorkerIdx] = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
+    threadsDWorker[newWorkerIdx] = (pthread_t*)malloc(sizeof(pthread_t));
+    if (locksDworker[newWorkerIdx] == NULL || condsDworker[newWorkerIdx] == NULL || threadsDWorker[newWorkerIdx] == NULL) {
+        if (locksDworker[newWorkerIdx] == NULL)
+            free(locksDworker[newWorkerIdx]);
+        if (condsDworker[newWorkerIdx] == NULL)
+            free(condsDworker[newWorkerIdx]);
+        if (threadsDWorker[newWorkerIdx] == NULL)
+            free(threadsDWorker[newWorkerIdx]);
+
+        return 0;
+    }
+    pthread_mutex_init(locksDworker[newWorkerIdx], NULL);
+    if (pthread_cond_init(condsDworker[newWorkerIdx],NULL)!=0) {
+        pthread_mutex_destroy(locksDworker[newWorkerIdx]);
+        free(locksDworker[newWorkerIdx]);
+        locksDworker[newWorkerIdx] = NULL;
+        free(condsDworker[newWorkerIdx]);
+        condsDworker[newWorkerIdx] = NULL;
+        free(threadsDWorker[newWorkerIdx]);
+        threadsDWorker[newWorkerIdx] = NULL;
+        return 0;
+    }
     funcsDWorker[newWorkerIdx] = workerFunction;
     paramsDWorker[newWorkerIdx] = workerData;
-    conditionsDWorker[newWorkerIdx] = false;
-    locksDworker[newWorkerIdx] = SDL_CreateMutex();
-    condsDworker[newWorkerIdx] = SDL_CreateCond();
-    threadsDWorker[newWorkerIdx] = SDL_CreateThread(WorkerThreadFunction, nameWorker, &dataThreadsID[newWorkerIdx]);
+    if (pthread_create(threadsDWorker[newWorkerIdx], NULL, WorkerThreadFunction, &dataThreadsID[newWorkerIdx])!=0) {
+        pthread_mutex_destroy(locksDworker[newWorkerIdx]);
+        pthread_cond_destroy(condsDworker[newWorkerIdx]);
+        free(locksDworker[newWorkerIdx]);
+        locksDworker[newWorkerIdx] = NULL;
+        free(condsDworker[newWorkerIdx]);
+        condsDworker[newWorkerIdx] = NULL;
+        free(threadsDWorker[newWorkerIdx]);
+        threadsDWorker[newWorkerIdx] = NULL;
+        funcsDWorker[newWorkerIdx] = NULL;
+        paramsDWorker[newWorkerIdx] = NULL;
+
+        return 0;
+    }
 
     countDWorker++;
     FirstFreeDWorkerID = findFirstFreeDWorkerID();
@@ -197,10 +208,10 @@ void RunDWorker(unsigned int dworkerID, bool WaitIfBusy) {
         if (WaitIfBusy)
             WaitDWorker(dworkerID);
     }
-    SDL_LockMutex(locksDworker[idx]);
+    pthread_mutex_lock(locksDworker[idx]);
     conditionsDWorker[idx] = true;
-    SDL_CondSignal(condsDworker[idx]);
-    SDL_UnlockMutex(locksDworker[idx]);
+    pthread_cond_signal(condsDworker[idx]);
+    pthread_mutex_unlock(locksDworker[idx]);
 }
 
 bool IsBusyDWorker(unsigned int dworkerID) {
@@ -219,25 +230,28 @@ void WaitDWorker(unsigned int dworkerID) {
     if (threadsDWorker[idx] == NULL)
         return;
     while(conditionsDWorker[idx]) {
-        SDL_Delay(0);
+        sched_yield();
     };
 }
 
 bool WaitTimeOutDWorker(unsigned int dworkerID, unsigned int timeOut) {
     unsigned int idx = dworkerID - 1;
-    Uint64 timeout = SDL_GetTicks() + timeOut;
+    unsigned int timeout = DgTime + ((timeOut * DgTimerFreq) / 1000);
 
     if (MaxDWorkersCount == 0 || dworkerID == 0 || dworkerID > MaxDWorkersCount)
         return false; // invalid dworkerID
 
-    while (SDL_GetTicks() < timeout) {
+    while (DgTime < timeout) {
         if (!conditionsDWorker[idx])
             return true;
-        SDL_Delay(1);
+        sched_yield();
     }
     return false; // timed out
 }
 
+void DWorkerYield() {
+    sched_yield();
+}
 
 void DestroyDWorker(unsigned int dworkerID) {
     if (MaxDWorkersCount == 0 || dworkerID == 0 || dworkerID > MaxDWorkersCount)
@@ -249,17 +263,23 @@ void DestroyDWorker(unsigned int dworkerID) {
         killsDWorker[idx] = true;
         RunDWorker(dworkerID, true);
         // wait until kill thread is set to false by thread loop
+        pthread_join(*threadsDWorker[idx], NULL);
         while(killsDWorker[idx]) {
-            SDL_Delay(1);
+            if (DgTimerFreq<500)
+                DgDelay(4);
+            else
+                DgDelay(2);
         }
 
-        SDL_DetachThread(threadsDWorker[idx]);
+        pthread_detach(*threadsDWorker[idx]);
         if (condsDworker[idx] != NULL) {
-            SDL_DestroyCond(condsDworker[idx]);
+            pthread_cond_destroy(condsDworker[idx]);
+            free(condsDworker[idx]);
             condsDworker[idx] = NULL;
         }
         if (locksDworker[idx] != NULL) {
-            SDL_DestroyMutex(locksDworker[idx]);
+            pthread_mutex_destroy(locksDworker[idx]);
+            free(locksDworker[idx]);
             locksDworker[idx] = NULL;
         }
         countDWorker --;
@@ -275,14 +295,10 @@ void DestroyDWorker(unsigned int dworkerID) {
 // Mutex ///////////////////////////////////////////////////
 
 PDMutex CreateDMutex() {
-    DMutex *mutex = (DMutex*)SDL_malloc(sizeof(DMutex));
+    DMutex *mutex = (DMutex*)malloc(sizeof(DMutex));
     if (mutex != NULL) {
         mutex->Sign = 'XTMD'; // "DMTX"
-        mutex->mutex = SDL_CreateMutex();
-        if (mutex->mutex == NULL) {
-            SDL_free(mutex);
-            mutex = NULL;
-        }
+        pthread_mutex_init(&mutex->mutex, NULL);
     }
     return mutex;
 }
@@ -290,31 +306,32 @@ PDMutex CreateDMutex() {
 void  DestroyDMutex(PDMutex DMutexPtr) {
     DMutex *mutex = (DMutex*)DMutexPtr;
     if (mutex->Sign == 'XTMD') {
-        SDL_DestroyMutex(mutex->mutex);
+        pthread_mutex_destroy(&mutex->mutex);
         mutex->Sign = 0;
-        mutex->mutex = NULL;
-        SDL_free(mutex);
+        free(mutex);
     }
 }
 
-void  LockDMutex(PDMutex DMutexPtr) {
+int  LockDMutex(PDMutex DMutexPtr) {
     DMutex *mutex = (DMutex*)DMutexPtr;
     if (mutex->Sign == 'XTMD') {
-        SDL_LockMutex(mutex->mutex);
+        return pthread_mutex_lock(&mutex->mutex);
     }
+    return -1;
 }
 
-void  UnlockDMutex(PDMutex DMutexPtr) {
+int  UnlockDMutex(PDMutex DMutexPtr) {
     DMutex *mutex = (DMutex*)DMutexPtr;
     if (mutex->Sign == 'XTMD') {
-        SDL_UnlockMutex(mutex->mutex);
+        return pthread_mutex_unlock(&mutex->mutex);
     }
+    return -1;
 }
 
 bool  TryLockDMutex(PDMutex DMutexPtr) {
     DMutex *mutex = (DMutex*)DMutexPtr;
     if (mutex->Sign == 'XTMD') {
-        return (SDL_TryLockMutex(mutex->mutex) == 0);
+        return (pthread_mutex_trylock(&mutex->mutex) == 0);
     }
     return false;
 }
