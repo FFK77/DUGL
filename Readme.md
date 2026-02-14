@@ -36,7 +36,7 @@ Implement a layer over **SDL** allowing a custom keyboard/mouse and events queue
 * **Timer**: Time synchronising functions.
 * **Sound**: Sound module with up to 64 mixed channels, with looping, pause, queue and volume.
 * **Images**: Implement image loader functions from file or memory supporting (**GIF**(8bits not interlaced ), **BMP**(8/16Bits not compressed), PCX(8Bits), **JPEG**(using libjpeg or libjpeg-Turbo), **PNG** (using libpng and zlib)
-* **Threading**: Implement **DMutex** and **DWorker** concept, a simple/flexible layer over **SDL** Threading functions, allowing to allocate sleeping threads (threads pool) and change dynamically their function/data/priority.
+* **Threading**: Implement **DMutex** and **DWorker** concept, a simple/flexible layer over **Pthread** Threading functions, allowing to allocate sleeping threads (threads pool) and change dynamically their function/data/priority.
 * **Container**: Chained Chunks memory allocator, Fast Dictionnary (char\*,void\*), String separator(s) splitter, Threaded(DWorker) File Buffering.
 * **Math3D**: Support Matrix4x4, VEC4 and VEC2 (float or integer) implements a wide range of functions impelmented in SIMD assembly.
 
