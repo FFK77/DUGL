@@ -116,7 +116,7 @@ void DgGetPreferredFullScreenMode(int *width, int *height, int *refreshRate);
 // Enumerate current window full display modes
 // return count of display mode, and fill attributes of first display mode, if any
 int DgGetFirstDisplayMode(int *width, int *height, int *bpp, int *refreshRate);
-// return true, and fill Display mode attributes if any, else return false
+// return true, and fill next Display mode attributes if any, else return false
 bool DgGetNextDisplayMode(int *width, int *height, int *bpp, int *refreshRate);
 // Check events
 void DgCheckEvents();

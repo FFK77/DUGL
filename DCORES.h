@@ -85,7 +85,7 @@ typedef struct {
     void (*RePoly16)(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
     // BMFont
     void (*SetCurBMFont)(DBMFONT *pBMFONT);
-    void (*OutTextBM16)(const char *str);
+    void (*OutTextBM16)(char *str);
 
 } DGCORE;
 
@@ -175,7 +175,7 @@ void RePoly16_C2(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 
 // BMFONT
 extern DBMFONT       CurDBMFONT_C2; // current active Bitmap FONT
-void OutTextBM16_C2(const char *str);
+void OutTextBM16_C2(char *str);
 void SetCurBMFont_C2(DBMFONT *pBMFONT);
 
 
@@ -254,7 +254,7 @@ void RePoly16_C3(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 
 // BMFONT
 extern DBMFONT       CurDBMFONT_C3; // current active Bitmap FONT
-void OutTextBM16_C3(const char *str);
+void OutTextBM16_C3(char *str);
 void SetCurBMFont_C3(DBMFONT *pBMFONT);
 
 // DUGL CORE 4 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -332,7 +332,7 @@ void RePoly16_C4(void *ListPt, DgSurf *SS, unsigned int TypePoly, int ColPoly);
 
 // BMFONT
 extern DBMFONT       CurDBMFONT_C4; // current active Bitmap FONT
-void OutTextBM16_C4(const char *str);
+void OutTextBM16_C4(char *str);
 void SetCurBMFont_C4(DBMFONT *pBMFONT);
 
 #ifdef __cplusplus

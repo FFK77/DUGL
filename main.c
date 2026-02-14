@@ -30,7 +30,7 @@ int SDLEventHandler(void *data, SDL_Event* event);
 
 SDL_Window *DgWindow = NULL;
 SDL_Surface *surfaceW = NULL;
-SDL_mutex *mutexEvents = NULL;
+DMutex *mutexEvents = NULL;
 SDL_Surface *surf16bpp = NULL;
 SDL_Surface *surfFront16bpp = NULL;
 SDL_Renderer *vsyncRenderer = NULL;
@@ -64,7 +64,7 @@ int DgInit() {
     }
     enableDoubleBuff = DEFAULT_DBLBUFF_ENABLED;
 
-    mutexEvents = SDL_CreateMutex();
+    mutexEvents = CreateDMutex();
     if (mutexEvents == NULL) {
         dgLastErrID = DG_ERSS_EVENT_MUTEX_INIT_FAIL;
         return 0;
@@ -75,10 +75,10 @@ int DgInit() {
 
 void DgQuit() {
     if (mutexEvents != NULL) {
-        if (SDL_LockMutex(mutexEvents) == 0) {
+        if (LockDMutex(mutexEvents) == 0) {
             SDL_DelEventWatch(SDLEventHandler, NULL);
-            SDL_UnlockMutex(mutexEvents);
-            SDL_DestroyMutex(mutexEvents);
+            UnlockDMutex(mutexEvents);
+            DestroyDMutex(mutexEvents);
             mutexEvents = NULL;
         }
     }
@@ -280,7 +280,7 @@ int DgInitMainWindowX(const char *title, int ResHz, int ResVt, char BitsPixel, i
     }
 
     if (MsScanEvents == 1) {
-        if (SDL_LockMutex(mutexEvents) == 0) {
+        if (LockDMutex(mutexEvents) == 0) {
             MsZ = 0;
             ClearMsEvntsStack();
             EnableMsEvntsStack();
@@ -302,7 +302,7 @@ int DgInitMainWindowX(const char *title, int ResHz, int ResVt, char BitsPixel, i
                     iPushMsEvent(MS_EVNT_MOUSE_MOVE);
                 }
             }
-            SDL_UnlockMutex(mutexEvents);
+            UnlockDMutex(mutexEvents);
         }
     }
     dgWindowResizeCallBack = NULL;
@@ -668,7 +668,7 @@ void SetSurfView(DgSurf *S, DgView *V) {
         S->vlfb= S->rlfb+S->OrgX-(S->OrgY-(S->ResV-1))*S->ResH;
 }
 
-// sets DgSurf relative View Bounds (ignoring the new View Origin)
+// sets DgSurf View Bounds (ignoring the new View Origin)
 void SetSurfViewBounds(DgSurf *S, DgView *V) {
     // clip if required
     int RMaxX= ((V->MaxX+S->OrgX)<S->ResH) ? V->MaxX+S->OrgX : S->ResH-1;

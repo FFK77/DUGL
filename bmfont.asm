@@ -135,7 +135,6 @@ SetCurBMFont:
             SUB         EDX,EDI ; MinX = ECX = posXPut - SOrgX
             SUB         EBX,EDI
             DEC         EBX         ; MaxX = EAX = posXPut + (SResH -1) - SOrgX
-%%FInvVtPut:
 ;-----------------------------------------------
             CMP         EAX,[PutSurfMaxX]
             JG          %%PutSurfClip

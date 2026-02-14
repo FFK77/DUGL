@@ -65,6 +65,44 @@ PutSurf16:
             CMP         EDX,[MaxY]
             JG          .PasPutSurf
 
+            MOV         [PType],ESI ; save
+            ; compute the clipped/unclipped put rectangle coordinaates in (PutSurfMinX, PutSurfMinY, PutSurfMaxX, PutSurfMaxY)
+;==========================================
+;            MOV         EDI,[MaxX]
+;            MOV         EBP,[MaxY]
+;            CMP         EAX,EDI ; PMaxX <= MaxX ?
+;            JLE         SHORT .NoPSMaxXClip
+;            MOV         [PutSurfMaxX],EDI
+;            JMP         SHORT .PSMaxXClip
+;.NoPSMaxXClip:
+;            MOV         [PutSurfMaxX],EAX
+;.PSMaxXClip:
+;            CMP         EBX,EBP ; PMaxY <= MaxY ?
+;            JLE         SHORT .NoPSMaxYClip
+;            MOV         [PutSurfMaxY],EBP
+;            JMP         SHORT .PSMaxYClip
+;.NoPSMaxYClip:
+;            MOV         [PutSurfMaxY],EBX
+;.PSMaxYClip:
+;            MOV         EDI,[MinX]
+;            MOV         EBP,[MinY]
+;            CMP         ECX,EDI ; PMinX >= MinX
+;            JGE         SHORT .NoPSMinXClip
+;            MOV         [PutSurfMinX],EDI
+;            JMP         SHORT .PSMinXClip
+;.NoPSMinXClip:
+;            MOV         [PutSurfMinX],ECX
+;.PSMinXClip:
+;            CMP         EDX,EBP ; PMinY >= MinY
+;            JGE         SHORT .NoPSMinYClip
+;            MOV         [PutSurfMinY],EBP
+;            JMP         SHORT .PSMinYClip
+;.NoPSMinYClip:
+;            MOV         [PutSurfMinY],EDX
+;.PSMinYClip:
+;=========================
+
+            ;MOV         ESI,[EBP+PSType16] ; restore
             CMP         EAX,[MaxX]
             CMOVG       EAX,[MaxX]
             CMP         EBX,[MaxY]
@@ -77,12 +115,14 @@ PutSurf16:
             MOV         [PutSurfMinX],ECX ;-
             CMOVL       EDX,[MinY]
             MOV         [PutSurfMinY],EDX ;-
-; --- compute Put coordinates of the entire Surf
+
+
+; --- compute Put coordinates of the entire Surf (as if source surf is full view)
 ; EAX: MaxX, EBX; MaxY, ECX: MinX, EDX: MnY
-            MOV         EAX,[EBP+XPSN16]
-            MOV         EBX,[EBP+YPSN16]
-            MOV         ECX,EAX
-            MOV         EDX,EBX
+            MOV         EAX,[EBP+XPSN16]  ; EAX = PutMaxX / without clipping
+            MOV         EBX,[EBP+YPSN16]  ; EBX = PutMaxY / without clipping
+            MOV         ECX,EAX           ; ECX = PutMinX / without clipping
+            MOV         EDX,EBX           ; EDX = PutMinY / without clipping
             TEST        ESI,1
             MOV         EDI,[SOrgX]
             JZ          SHORT .FNormHzPut
@@ -107,7 +147,7 @@ PutSurf16:
             ADD         EBX,[SResV]
             SUB         EDX,EDI ; MinX = ECX = posXPut - SOrgX
             SUB         EBX,EDI
-            DEC         EBX         ; MaxX = EAX = posXPut + (SResH -1) - SOrgX
+            DEC         EBX         ; MaxY = EBX = posYPut + (SResV -1) - SOrgY
 .FInvVtPut:
 ;-----------------------------------------------
 
@@ -120,8 +160,8 @@ PutSurf16:
             CMP         EDX,[PutSurfMinY]
             JL          .PutSurfClip
 
+            ;JMP         .PutSurfClip
 ; PutSurf non Clipper *****************************
-            MOV         [PType],ESI
             MOV         EBP,[SResV]
             TEST        ESI,2 ; vertically reversed ?
             JZ          .NormAdSPut
@@ -301,7 +341,6 @@ PutSurf16:
 
 .PutSurfClip:
 ; PutSurf Clipper **********************************************
-            MOV         [PType],ESI ; sauvegarde le type
             XOR         EDI,EDI   ; Y Fin Source
             XOR         ESI,ESI   ; X deb Source
 
@@ -311,8 +350,8 @@ PutSurf16:
             TEST         BYTE [PType],1 ; INV HZ
             JNZ         .InvHzCalcDX
             MOV         ESI,EBP
-            ;MOV        [XP1],EBP    ; XP1 = MinX
             SUB         ESI,ECX ; ESI = MinX - XP2
+            MOV         ECX,EBP
 .InvHzCalcDX:
             MOV         ECX,EBP
 .PsInfMinX:

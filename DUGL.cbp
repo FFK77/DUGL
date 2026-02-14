@@ -48,8 +48,6 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add option="-static-libstdc++" />
-					<Add option="-static-libgcc" />
 					<Add option="-static" />
 					<Add option="-m32" />
 					<Add library="SDL2main" />
@@ -166,7 +164,7 @@
 			<Option compile="0" />
 			<Option link="0" />
 		</Unit>
-		<Unit filename="worker.c">
+		<Unit filename="workerc.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

@@ -57,7 +57,7 @@ EXTERN  DgNanoSurf
 EXTERN  InHLineUVCompute, ClipHLineXCompute
 
 ; GLOBAL Constants
-MaxDblSidePolyPts     EQU 128
+MaxDblSidePolyPts     EQU 256
 
 BITS 32
 
@@ -1408,10 +1408,11 @@ Poly16:
             MOV         EDX,ReversedPtrListPt
             DEC         EAX
             MOV         [EDX],ECX
+
             LEA         EDI,[ESI+EAX*4]
             CMP         EAX,BYTE 2
             LEA         EBX,[EDX+4] ; P1 already copied
-            MOV         ESI,EDX
+            MOV         ESI,EDX ; update [PPtrListPt] In ESI
             JA          .BcSwapPtsOver3
 .BcSwapPts:
             MOV         ECX,[EDI]
@@ -1615,7 +1616,7 @@ InFillPolyProc16:
     DD  InFillRGB16,InFillSOLID_BLND16,InFillTEXT_BLND16,InFillMASK_TEXT_BLND16
 
 ClFillPolyProc16:
-    DD  ClipFillSOLID16,ClipFillTEXT16,ClipFillMASK_TEXT16, 0, 0 ;ClipFillFLAT_DEG,ClipFillDEG
+    DD  ClipFillSOLID16,ClipFillTEXT16,ClipFillMASK_TEXT16, dummyFill16, dummyFill16 ;ClipFillFLAT_DEG,ClipFillDEG
     DD  dummyFill16, dummyFill16 ;ClipFillFLAT_DEG_TEXT,ClipFillMASK_FLAT_DEG_TEXT
     DD  dummyFill16, dummyFill16, dummyFill16 ;ClipFillDEG_TEXT,ClipFillMASK_DEG_TEXT,ClipFillEFF_FDEG
     DD  ClipFillTEXT_TRANS16, ClipFillMASK_TEXT_TRANS16
