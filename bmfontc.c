@@ -1,5 +1,5 @@
 /*	Dust Ultimate Game Library (DUGL)
-    Copyright (C) 2025  Fakhri Feki
+    Copyright (C) 2026  Fakhri Feki
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <SDL2/SDL.h>
+#include <string.h>
 
 #include "DUGL.h"
 
@@ -39,9 +39,9 @@
 #define BMFONT_KERNINGS_ID      5
 #define BMFONT_KERNING_ID       6
 
-bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) {
+bool LoadBMFONT(DBMFONT **resDBMFONT, char *fileDescName, DgSurf *AllCharsSurf) {
 	DFileBuffer *FileBuffer = NULL;
-    DBMFONT *newBMFont = SDL_SIMDAlloc(sizeof(DBMFONT));
+    DBMFONT *newBMFont = malloc(sizeof(DBMFONT));
     DSplitString *ListInfoLine = CreateDSplitString(0, 128);
     DSplitString *QuoteSplitter = CreateDSplitString(3, 2048);
     static char* BMMultiDelims = "= ";
@@ -66,32 +66,31 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
     };
 
     if (newBMFont == NULL || AllCharsSurf == NULL || ListInfoLine == NULL || QuoteSplitter == NULL) {
-        dgLastErrID = DG_ERSS_NO_MEM;
         return false;
     }
     FileBuffer = CreateDFileBuffer(0);
     if (FileBuffer == NULL) {
-        SDL_SIMDFree(newBMFont);
+        free(newBMFont);
         dgLastErrID = DG_ERSS_NO_MEM;
         return false;
     }
 
     if (!OpenFileDFileBuffer(FileBuffer, fileDescName, "rt")) {
-        SDL_SIMDFree(newBMFont);
-        DestroyDFileBuffer(FileBuffer);
         DestroySurf(newBMFont->CharsMainSurf);
+        DestroyDFileBuffer(FileBuffer);
+        free(newBMFont);
         dgLastErrID = DG_ERSS_FILE_NOT_FOUND;
         return false;
 	}
 
 	newBMFont->CharsMainSurf = AllCharsSurf;
 	// init BMFONT with dummy
-	SDL_memcpy4(newBMFont, &dummyDBMFONT, sizeof(DBMFONT)/4);
+	memcpy(newBMFont, &dummyDBMFONT, sizeof(DBMFONT));
 	// set main source DgSurf
 	newBMFont->CharsMainSurf = AllCharsSurf;
 
     // parse fnt description file
-    char *nexBMLine = (char*)SDL_malloc(ListInfoLine->maxGlobLength+1);
+    char *nexBMLine = (char*)malloc(ListInfoLine->maxGlobLength+1);
     SetMultiDelimDSplitString(ListInfoLine, BMMultiDelims); // set list of delimiters for MultiDelimSplit
     bool infoLineFound = false;
     bool commonLineFound = false;
@@ -106,7 +105,7 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
         int LineSignIdx = -1;
         int globCharsPlus = 0;
         for (int i = 0; i < countLineSigns; i++) {
-            if (SDL_strncmp(BMFontLineSigns[i], nexBMLine, BMFontSignsLength[i]) == 0) {
+            if (strncmp(BMFontLineSigns[i], nexBMLine, BMFontSignsLength[i]) == 0) {
                 LineSignIdx = i;
                 globCharsPlus = BMFontSignsLength[i];
                 break;
@@ -118,7 +117,7 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
         else {
             // try jump "face" attribut for "info " line
             if (LineSignIdx == BMFONT_INFO_ID && !infoLineFound) {
-                if (SDL_strncmp(&nexBMLine[globCharsPlus], "face", 4) == 0) {
+                if (strncmp(&nexBMLine[globCharsPlus], "face", 4) == 0) {
                     int countQuotes = 0;
                     while (countQuotes < 2 && nexBMLine[globCharsPlus] != '\0') {
                         globCharsPlus++;
@@ -153,25 +152,25 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
                         int commonScaleH = 0;
                         // extract attributs
                         for (int i = 0; i < ListInfoLine->countStrings; i+=2) {
-                            if (!SDL_strcmp("lineHeight", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            if (!strcmp("lineHeight", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     commonAttsFound |= 1;
-                                    commonLineHeight = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    commonLineHeight = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("base", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("base", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     commonAttsFound |= 1 << 1;
-                                    commonBase = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    commonBase = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("scaleW", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("scaleW", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     commonAttsFound |= 1 << 2;
-                                    commonScaleW = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    commonScaleW = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("scaleH", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("scaleH", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     commonAttsFound |= 1 << 3;
-                                    commonScaleH = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    commonScaleH = atoi(QuoteSplitter->ListStrings[0]);
                                 }
                             }
                         }
@@ -213,45 +212,45 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
                         int charOrgY = 0; // from descending to ascending y axis
                         // extract attributs
                         for (int i = 0; i < ListInfoLine->countStrings; i+=2) {
-                            if (!SDL_strcmp("id", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            if (!strcmp("id", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1;
-                                    charID = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charID = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("x", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("x", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 1;
-                                    charX = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charX = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("y", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("y", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 2;
-                                    charY = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charY = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("width", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("width", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 3;
-                                    charWIDTH = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charWIDTH = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("height", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("height", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 4;
-                                    charHEIGHT = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charHEIGHT = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("xoffset", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("xoffset", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 5;
-                                    charXOFFSET = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charXOFFSET = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("yoffset", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("yoffset", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 6;
-                                    charYOFFSET = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charYOFFSET = atoi(QuoteSplitter->ListStrings[0]);
                                 }
-                            } else if (!SDL_strcmp("xadvance", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
+                            } else if (!strcmp("xadvance", ListInfoLine->ListStrings[i]) && (i+1) < ListInfoLine->countStrings) {
                                 if (splitDSplitString(QuoteSplitter, ListInfoLine->ListStrings[i+1], '"', false) == 1) {
                                     charAttsFound |= 1 << 7;
-                                    charXADVANCE = SDL_atoi(QuoteSplitter->ListStrings[0]);
+                                    charXADVANCE = atoi(QuoteSplitter->ListStrings[0]);
                                 }
                             }
                         }
@@ -264,11 +263,12 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
 
                             if (charX + (charWIDTH - 1) <= newBMFont->CharsMainSurf->MaxX && charOrgY + charHEIGHT-1 <= newBMFont->CharsMainSurf->MaxY) {
                                 if (charWIDTH > 0 && charHEIGHT > 0) {
-                                    DgView charView = { .OrgX = charX, .OrgY = charOrgY, .MinX = 0, .MinY = 0, .MaxX = charWIDTH-1, .MaxY = charHEIGHT-1 };
+                                    DgView charView = { .OrgX = charX, .OrgY = charOrgY, .MaxX = charWIDTH-1, .MaxY = charHEIGHT-1, .MinX = 0, .MinY = 0 };
                                     CreateSurfBuffView(&newBMFont->CharsSSurfs[charID], newBMFont->CharsMainSurf->ResH, newBMFont->CharsMainSurf->ResV, 16,
                                                        (void*)newBMFont->CharsMainSurf->rlfb, &charView);
                                 }
                                 newBMFont->CharsPlusX[charID] = charXADVANCE;
+                                newBMFont->CharsWidth[charID] = charWIDTH;
                                 newBMFont->CharsXOffset[charID] = charXOFFSET;
                                 newBMFont->CharsYOffset[charID] = charYOFFSET;
                                 newBMFont->CharsHeight[charID] = charHEIGHT;
@@ -298,7 +298,7 @@ bool LoadBMFONT(char *fileDescName, DgSurf *AllCharsSurf, DBMFONT **resDBMFONT) 
         }
 	}
 
-    SDL_free(nexBMLine);
+    free(nexBMLine);
 	DestroyDFileBuffer(FileBuffer);
 	DestroyDSplitString(QuoteSplitter);
 	DestroyDSplitString(ListInfoLine);
@@ -312,67 +312,100 @@ void DestroyBMFONT(DBMFONT *pBMFONT) {
         return;
     if (pBMFONT->CharsMainSurf != NULL) {
         DestroySurf(pBMFONT->CharsMainSurf);
+        free(pBMFONT);
     } else {
         return;
     }
 }
 
-int  WidthBMText(DBMFONT *pBMFONT, const char *str) {
-    const char *strIt = str;
+int  WidthBMText(DBMFONT *pBMFONT, char *str) {
+    unsigned char *strIt = (unsigned char*)str;
     int widthText = 0;
+    unsigned char lastChar = 0;
 
     if (strIt == NULL || pBMFONT == NULL)
         return 0;
     while (*strIt != '\0') {
-        widthText += pBMFONT->CharsPlusX[(unsigned char)(*strIt)];
+        lastChar = (*strIt);
+        widthText += pBMFONT->CharsPlusX[(*strIt)];
         strIt ++;
     }
+    // special handling for last char: remove plus and add char width
+    widthText -= pBMFONT->CharsPlusX[lastChar];
+    widthText += pBMFONT->CharsWidth[lastChar];
+
     return widthText;
 }
 
-int  WidthPosBMText(DBMFONT *pBMFONT, const char *str,int pos) {
-    const char *strIt = str;
+int  WidthPosBMText(DBMFONT *pBMFONT, char *str, int pos) {
+    unsigned char *strIt = (unsigned char*)str;
     int widthText = 0;
 
     if (strIt == NULL || pBMFONT == NULL)
         return 0;
     for (int i =0; i < pos &&  (*strIt) != '\0'; i++, strIt ++) {
-        widthText += pBMFONT->CharsPlusX[(unsigned char)(*strIt)];
+        if (strIt[1] != '\0') // next char isn't the end,
+            widthText += pBMFONT->CharsPlusX[(*strIt)];
+        else
+            widthText += pBMFONT->CharsWidth[(*strIt)];
     }
     return widthText;
 }
 
-void OutMultiLinesTextBM16(OutTextBM16PTR OutTextBM16Func, DBMFONT *pBMFONT, int textMaxX, int MaxLines, DBMFONT_ADJUST bmfont_adjust, const char *str) {
-    if (OutTextBM16Func == NULL || pBMFONT == NULL) {
-        return;
+// Position in *str if we progress by "width" pixels, return -1 if we crossed string boundaries
+int  PosWidthBMText(DBMFONT *pBMFONT, char *str,int  width) {
+    unsigned char *strIt = (unsigned char*)str;
+    int startX = 0;
+    int widthText = 0;
+
+    if (strIt == NULL || pBMFONT == NULL)
+        return 0;
+    for (int i =0; (*strIt) != '\0'; i++, strIt ++) {
+        if (strIt[1] != '\0') // next char isn't the end,
+            widthText += pBMFONT->CharsPlusX[(*strIt)];
+        else
+            widthText += pBMFONT->CharsWidth[(*strIt)];
+        if (width >= startX && width <= widthText)
+            return i;
+        startX = widthText;
     }
+    return -1;
+}
+
+void OutTextBMMode16(char *str, DBMFONT_ADJUST bmfont_adjust) {
+    int initX = CurDBMFONT.CharX;
+    int widthLineText = 0;
+
+	switch (bmfont_adjust) {
+	  case BMFONT_ADJUST_SRC:
+        CurDBMFONT.CharX = initX;
+	    break;
+	  case BMFONT_ADJUST_MID:
+	    widthLineText=WidthBMText(&CurDBMFONT, str);
+	    CurDBMFONT.CharX=(CurSurf.MinX+CurSurf.MaxX)/2-widthLineText/2;
+	    break;
+	  case BMFONT_ADJUST_DST:
+        widthLineText=WidthBMText(&CurDBMFONT, str);
+	    CurDBMFONT.CharX=(CurSurf.MaxX-widthLineText);
+	    break;
+	  default:
+	    return;
+	}
+	OutTextBM16(str);
+}
+
+void OutMultiLinesTextBM16(char *str, int MaxLines, DBMFONT_ADJUST bmfont_adjust) {
     DSplitString *linesSplitter = CreateStrDSplitString(MaxLines, str);
     if (linesSplitter == NULL) {
         return;
     }
-    int initX = pBMFONT->CharX;
-    int initY = pBMFONT->CharY;
-    int widthLineText = 0;
+    int initX = CurDBMFONT.CharX;
 
     if (splitDSplitString(linesSplitter, NULL, '\n', true) > 0) {
-        for (int i = 0; i < linesSplitter->countStrings; i++) {
-            switch (bmfont_adjust) {
-            case BMFONT_ADJUST_SRC:
-                pBMFONT->CharX = initX;
-                break;
-            case BMFONT_ADJUST_DST:
-                widthLineText = WidthBMText(pBMFONT, linesSplitter->ListStrings[i]);
-                pBMFONT->CharX = textMaxX - widthLineText - 1;
-                break;
-            case BMFONT_ADJUST_MID:
-                widthLineText = WidthBMText(pBMFONT, linesSplitter->ListStrings[i]);
-                pBMFONT->CharX = (initX+textMaxX) /2 - widthLineText / 2;
-                break;
-            default:
-                pBMFONT->CharX = initX;
-            }
-            pBMFONT->CharY = initY - (i* pBMFONT->CharsGHeight);
-            OutTextBM16Func(linesSplitter->ListStrings[i]);
+        for (int i = 0; i < MaxLines && i < linesSplitter->countStrings; i++) {
+            OutTextBMMode16(linesSplitter->ListStrings[i], bmfont_adjust);
+            CurDBMFONT.CharY -= CurDBMFONT.CharsGHeight; // move to next line
+            CurDBMFONT.CharX = initX; // restore startX
         }
     }
     DestroyDSplitString(linesSplitter);
