@@ -19,11 +19,15 @@
 #ifndef INTRNDUGL_H_INCLUDED
 #define INTRNDUGL_H_INCLUDED
 
+#include <pthread.h>
+
 #define SYNCH_HST_SIZE  32
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <SDL2/SDL.h>
 
 typedef struct
 {
@@ -138,12 +142,12 @@ void DestroyDWorkers();
 // mutex
 
 typedef struct
-{   int         Sign;       // = "DMTX"
-    SDL_mutex   *mutex;
+{   int         	Sign;       // = "DMTX"
+    pthread_mutex_t mutex;
 } DMutex;
 
 // GLOBAL Events Handling
-extern SDL_mutex *mutexEvents;
+extern DMutex *mutexEvents;
 void DgScanEvents(SDL_Event *event);
 
 // keyboard ==========================================

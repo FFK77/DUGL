@@ -42,7 +42,7 @@ float SynchAccTime(void *SynchBuff); // time "in sec" since InitSynch or StartSy
 float SynchAverageTime(void *SynchBuff); // average time "in sec" between Synch calls
 float SynchLastTime(void *SynchBuff); // last non zero time "in sec" between Synch calls
 int  WaitSynch(void *SynchBuff,int *Pos);
-void DelayMs(unsigned int delayInMs); // wait DelayInMs
+void DgDelay(unsigned int delayInMs); // wait DelayInMs
 
 #ifdef __cplusplus
         }  // extern "C" {

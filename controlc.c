@@ -300,7 +300,7 @@ unsigned char DgWindowRequestClose = 0;
 unsigned char DgWindowResized = 0;
 
 void DgScanEvents(SDL_Event *event) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         if (event->type == SDL_WINDOWEVENT) {
             switch (event->window.event) {
             case SDL_WINDOWEVENT_ENTER:
@@ -327,7 +327,7 @@ void DgScanEvents(SDL_Event *event) {
                         } else {
                             if(!TryLockDMutex(dgResizeWinMutex)) {
                                 // the Delay inside the loop is required to ensure the other thread will be able to modify the bool to false
-                                for ((*dgRequestResizeWinMutex) = true; (*dgRequestResizeWinMutex) == true;) DelayMs(1);
+                                for ((*dgRequestResizeWinMutex) = true; (*dgRequestResizeWinMutex) == true;) DgDelay(1);
                                 LockDMutex(dgResizeWinMutex);
                             }
                         }
@@ -438,7 +438,7 @@ void DgScanEvents(SDL_Event *event) {
             }
         }
 
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
@@ -497,7 +497,7 @@ void DgTimeWorkerFunc(void *data, int WID) {
     while(!DgKillTimer) {
         deltaPerfCounterMs = ((SDL_GetPerformanceCounter() - DgInitPerfCounter) * 1000) / DgPerfFrequency;
         DgTime = (dgWDelay == 1) ? (deltaPerfCounterMs) : (deltaPerfCounterMs / 2);
-        DelayMs(dgWDelay);
+        DgDelay(dgWDelay);
     }
     DgKillTimer = false;
 }
@@ -506,7 +506,7 @@ void DgUninstallTimer() {
     if (DgTimerFreq > 0 && dgTimeWorkerID != 0) {
         DgKillTimer = true;
         while (DgKillTimer) {
-            DelayMs(1);
+            DgDelay(1);
         }
         DestroyDWorker(dgTimeWorkerID);
         dgTimeWorkerID = 0;
@@ -654,7 +654,7 @@ int  WaitSynch(void *SynchBuff,int *Pos) {
     for (;;) {
         timeToHandle = DgTime;
         if (timeToHandle == ST->LastTimeValue) {
-            DelayMs(1);
+            DgDelay(1);
             continue;
         }
         lastPos = ST->LastPos + ((float)(timeToHandle - initLastTime) / (float) DgTimerFreq) * ST->Freq;
@@ -664,14 +664,14 @@ int  WaitSynch(void *SynchBuff,int *Pos) {
             ST->LastPos = lastPos;
             break;
         }
-        DelayMs(1);
+        DgDelay(1);
     }
     if (Pos != NULL)
         *Pos = ST->LastPos;
     return (lastIPos - curIPos);
 }
 
-void DelayMs(unsigned int delayInMs) {
+void DgDelay(unsigned int delayInMs) {
 #define bigDelay 10
     if (DgTimerFreq > 0) {
         Uint64 timeout = SDL_GetPerformanceCounter() + (Uint64) ((double)(DgPerfFrequency) * ((double)(delayInMs)/1000.0));
@@ -733,89 +733,89 @@ void UpdateCAPS_NUMKbFLAG() {
 }
 
 void UninstallKeyboard() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iUninstallKeyboard();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 
 void PushKbDownEvent(unsigned int KeyCode) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iPushKbDownEvent(KeyCode);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void PushKbReleaseEvent(unsigned int KeyCode) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iPushKbReleaseEvent(KeyCode);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 
 void SetKbMAP(KbMAP *KM) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iSetKbMAP(KM);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void DisableCurKbMAP() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iDisableCurKbMAP();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 
 void GetKey(unsigned char *Key,unsigned int *KeyFLAG) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iGetKey(Key, KeyFLAG);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void WaitKeyPressed() {
     while (GetKeyNbElt() == 0) {
-        SDL_Delay(10);
+        DgDelay(10);
         DgCheckEvents();
     }
 }
 
 void ClearKeyCircBuff() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iClearKeyCircBuff();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void GetTimedKeyDown(unsigned char *Key,unsigned int *KeyTime) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iGetTimedKeyDown(Key,KeyTime);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void ClearTimedKeyCircBuff() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iClearTimedKeyCircBuff();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void GetAscii(unsigned char *Ascii,unsigned int *AsciiFLAG) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iGetAscii(Ascii, AsciiFLAG);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void ClearAsciiCircBuff() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iClearAsciiCircBuff();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
@@ -934,7 +934,7 @@ unsigned char MsInWindow = 0;
 int  InstallMouse() {
     if (MsScanEvents == 1)
         return 1; // already installed
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         MsZ = 0;
         ClearMsEvntsStack();
         EnableMsEvntsStack();
@@ -957,7 +957,7 @@ int  InstallMouse() {
             iPushMsEvent(MS_EVNT_MOUSE_MOVE);
         }
 
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
     return 1;
 }
@@ -965,10 +965,10 @@ int  InstallMouse() {
 void UninstallMouse() {
     if (MsScanEvents == 0)
         return;
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         MsScanEvents = 0;
         ClearMsEvntsStack();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
@@ -977,52 +977,52 @@ int IsMouseWheelSupported() {
 }
 
 void PushMsEvent(unsigned int eventID) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iPushMsEvent(eventID);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void SetMouseRView(DgView *V) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iSetMouseRView(V);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void SetMouseOrg(int MsOrgX,int MsOrgY) {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iSetMouseOrg(MsOrgX, MsOrgY);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void EnableMsEvntsStack() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iEnableMsEvntsStack();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void DisableMsEvntsStack() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iDisableMsEvntsStack();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 void ClearMsEvntsStack() {
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         iClearMsEvntsStack();
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
 }
 
 int GetMsEvent(MouseEvent *MsEvnt) {
     int resMsEvent = 0;
-    if (SDL_LockMutex(mutexEvents) == 0) {
+    if (LockDMutex(mutexEvents) == 0) {
         resMsEvent = iGetMsEvent(MsEvnt);
-        SDL_UnlockMutex(mutexEvents);
+        UnlockDMutex(mutexEvents);
     }
     return resMsEvent;
 }
