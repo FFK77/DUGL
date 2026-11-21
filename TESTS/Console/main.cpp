@@ -31,6 +31,7 @@ char EventsLoopSynchBuff[SIZE_SYNCH_BUFF];
 // render DWorker
 unsigned int renderWorkerID = 0;
 void RenderWorkerFunc(void *, int );
+DBMFONT *myBMFont = NULL;
 
 
 int main (int argc, char ** argv)
@@ -42,6 +43,15 @@ int main (int argc, char ** argv)
 
     // create rendering DWorker
     renderWorkerID = CreateDWorker(RenderWorkerFunc, nullptr);
+
+    // load BMFONT
+    DgSurf *bmFontSurf = NULL;
+    if (LoadPNG16(&bmFontSurf, "../Asset/BMFONT/click.png") == 0) {
+		printf("failed to load BMFONT image\n"); exit(-1);
+    }
+    if (LoadBMFONT("../Asset/BMFONT/click.fnt", bmFontSurf, &myBMFont)) {
+        SetCurBMFont(myBMFont);
+    }
 
     // load font
     if (!LoadFONT(&F1,"../Asset/FONT/HELLOC.chr")) {
@@ -140,6 +150,19 @@ int main (int argc, char ** argv)
     return 0;
 }
 
+/*void OutTextBM(char *str) {
+    int lowY = CurDBMFONT.CharY;
+    while (*str != 0) {
+        if (myBMFont != NULL) {
+            CurDBMFONT.CharX += myBMFont->CharsXOffset[*str];
+            CurDBMFONT.CharY = lowY + myBMFont->CharsGHeight - (myBMFont->CharsHeight[*str] + myBMFont->CharsYOffset[*str]);
+            PutBMChar16(myBMFont->CharsSSurfs[*str]);
+            CurDBMFONT.CharX += myBMFont->CharsPlusX[*str] - myBMFont->CharsXOffset[*str];
+        }
+        str++;
+    }
+}*/
+
 void RenderWorkerFunc(void *, int ) {
 
 	static bool finished = false;
@@ -153,13 +176,48 @@ void RenderWorkerFunc(void *, int ) {
 	DgSetCurSurf(RendSurf);
 
 	// clear all the Surf
-	DgClear16(0);
+	DgClear16(RGB16(0,0,255));
 
 	// put text cursor on the top
 	ClearText();
 	SetTextCol(0xffff);
 
+
+    //line16(CurSurf.MinX, CurDBMFONT.CharY+10, CurSurf.MaxX, CurDBMFONT.CharY+10, RGB16(255, 255, 0));
+    //line16(CurSurf.MinX, CurDBMFONT.CharY+20, CurSurf.MaxX, CurDBMFONT.CharY+20, RGB16(255, 255, 0));
+    char *str = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvXxYyZz0123456789&й\"'(-и_за)=~#{[|`\^@]}щ%*µ,?;.:/!§";
+
+    CurDBMFONT.CharX = CurSurf.MinX + 1;
+    CurDBMFONT.CharY = CurSurf.MinY + 30;
+    //line16(CurDBMFONT.CharX, CurDBMFONT.CharY, CurDBMFONT.CharX + WidthPosBMText(&CurDBMFONT, str, 3), CurDBMFONT.CharY, RGB16(255, 255, 0));
+    OutTextBM16(str);
+    char midStr[256] = "";
+
+    CurDBMFONT.CharX = CurSurf.MinX + 10;
+    CurDBMFONT.CharY = CurSurf.MinY + 230;
+    OutTextBM16(" èèèè\n");
+
+    OutMultiLinesTextBM16Format(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_MID, midStr, 255, "AHello!\n multiLines outBMText16\n\n  the end!!!\n%03i", 123);
+
+    //PutSurf16(CurDBMFONT.CharsSSurfs['a'], CurSurf.MinX + 10, CurSurf.MinY + 10, 0);
+    PutSurf16(&DgNanoSurf, CurSurf.MinX + 10, CurSurf.MinY + 10, 0);
+    SetCurBMFont_C2(&CurDBMFONT);
+    DgSetCurSurf_C2(&CurSurf);
+    CurDBMFONT_C2.CharX = CurSurf.MinX + 80;
+    CurDBMFONT_C2.CharY = CurSurf.MinY + 80;
+    //OutTextBM16_C2("Hello Core 2");
+
+    //OutTextBM16Format(OutTextBM16_C2, midStr, 255, "- this is format C2 %i", 200+55);
+    	//OutTextBM("Hhello World ji Aa^,;.");
+    //}
 	// std::map
+
+    /*CurDBMFONT_C2.CharX = CurSurf.MinX + 30;
+    CurDBMFONT_C2.CharY = CurSurf.MinY + 120;
+    char sArab[] = { char(138), char(139), char(140), char(141), char(142), char(143), char(144), char(145), char(146), char(147), char(148), char(149), char(150),
+        char(151), char(200), char(225), char(152), char(153), char(154), char(155), char(0) };
+
+    OutTextBM16_C2(sArab);*/
 
     std::map<std::string,void*> mapData;
 	char intstr[12];
@@ -230,7 +288,7 @@ void RenderWorkerFunc(void *, int ) {
 
     // DFileBuffer
 
-    DFileBuffer *dbuff = CreateDFileBuffer(0);
+/*  DFileBuffer *dbuff = CreateDFileBuffer(0);
     char *readBuff = NULL;
     FILE *tmpFILE = NULL;
     int countBenchChunks = 4096*8-1; // 2gb
@@ -297,7 +355,7 @@ void RenderWorkerFunc(void *, int ) {
         }
         DgUpdateWindow();
         free(readBuff);
-    }
+    }*/
 
     OutText16("\nconsole sample finished,\nEsc to exit\n");
     DgUpdateWindow();

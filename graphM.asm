@@ -1,22 +1,3 @@
-; Dust Ultimate Game Library (DUGL)
-;   Copyright (C) 2025  Fakhri Feki
-;
-;    This program is free software: you can redistribute it and/or modify
-;    it under the terms of the GNU General Public License as published by
-;    the Free Software Foundation, either version 3 of the License, or
-;    (at your option) any later version.
-
-;    This program is distributed in the hope that it will be useful,
-;    but WITHOUT ANY WARRANTY; without even the implied warranty of
-;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;    GNU General Public License for more details.
-
-;    You should have received a copy of the GNU General Public License
-;    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-;
-;    contact: libdugl(at)hotmail.com
-;=============================================================================
-
 
 %include "PARAM.asm"
 %include "DGUTILS.asm"
@@ -28,7 +9,7 @@
 ; GLOBAL Functions
 GLOBAL  GetMaxResVSetSurf, BlndCol16
 GLOBAL  DgSurfCGetPixel16, DgSurfCPutPixel16
-GLOBAL  SurfCopy, SurfMaskCopy16, SurfCopyBlnd16, SurfCopyTrans16
+GLOBAL  DgMemCpy, SurfCopy, SurfMaskCopy16, SurfCopyBlnd16, SurfCopyTrans16
 
 ; GLOBAL Internal functions
 GLOBAL  InHLineUVCompute, ClipHLineXCompute
@@ -95,6 +76,16 @@ BlndCol16:
 GetMaxResVSetSurf:
             MOV         EAX,MaxResV
             RET
+
+DgMemCpy:
+    ARG	PMemCDst, 4, PMemCSrc, 4, PMemCSize, 4
+		PUSH	    ESI
+		PUSH		EDI
+
+		MOV		    ESI,[EBP+PMemCSrc]
+		MOV		    EDI,[EBP+PMemCDst]
+		MOV		    EBP,[EBP+PMemCSize]
+        JMP         SurfCopy.DoMemCpy
 
 ALIGN 32
 SurfCopy:

@@ -23,9 +23,9 @@
 
 // screen resolution
 //int ScrResH=320,ScrResV=240;
-int ScrResH=640,ScrResV=480;
+//int ScrResH=640,ScrResV=480;
 //int ScrResH=800,ScrResV=600;
-//int ScrResH=1024,ScrResV=768;
+int ScrResH=1024,ScrResV=768;
 //int ScrResH=1920,ScrResV=1080;
 
 // 3d DATA
@@ -388,10 +388,10 @@ int main (int argc, char ** argv)
     if (LoadPNG16(&bmFontSurf, "../Asset/BMFONT/WhitePeaberryOutline.png") == 0) {
 		printf("failed to load BMFONT WhitePeaberryOutline.png image\n"); exit(-1);
     }
-    if (LoadBMFONT("../Asset/BMFONT/WhitePeaberryOutline.fnt", bmFontSurf, &myBMFont)) {
+    if (LoadBMFONT(&myBMFont, "../Asset/BMFONT/WhitePeaberryOutline.fnt", bmFontSurf)) {
         SetCurBMFont(myBMFont);
     } else {
-		printf("failed to load BMFONT WhitePeaberryOutline.txt font\n"); exit(-1);
+		printf("failed to load BMFONT WhitePeaberryOutline.fnt font\n"); exit(-1);
     }
 
     // load font
@@ -705,7 +705,7 @@ int main (int argc, char ** argv)
                     break;
                 case KB_KEY_F10 : // toggle full screen
                     if(!TryLockDMutex(renderMutex)) {
-                        for (requestRenderMutex = true;requestRenderMutex;) DelayMs(1);
+                        for (requestRenderMutex = true;requestRenderMutex;) DgDelay(1);
                         LockDMutex(renderMutex);
                     }
                     fullScreen = !fullScreen;
@@ -794,7 +794,7 @@ int main (int argc, char ** argv)
                 // first try to lock renderMutex,
                 // if fail, wait until rendering DWorker set requestRenderMutex to false, and execute a DelayMs(10) to free the renderMutex
                 if(!TryLockDMutex(renderMutex)) {
-                    for (requestRenderMutex = true;requestRenderMutex;) DelayMs(1);
+                    for (requestRenderMutex = true;requestRenderMutex;) DgDelay(1);
                     LockDMutex(renderMutex);
                 }
                 SaveBMP16(RendSurf,(char*)"Shadow.bmp");
@@ -805,7 +805,7 @@ int main (int argc, char ** argv)
             DgCheckEvents();
 
         } else if (!refreshWindow && SynchScreen) {
-            DelayMs(1);
+            DgDelay(1);
         }
 
 		if (refreshWindow) {
@@ -829,7 +829,7 @@ int main (int argc, char ** argv)
             DgToggleFullScreen(false);
         }
         DgCheckEvents();
-        DelayMs(1);
+        DgDelay(1);
 	}
 
 	DestroyDWorker(renderWorkerID);
@@ -1224,7 +1224,7 @@ void RenderWorkerFunc(void *, int ) {
            OutText16ModeFormat(AJ_RIGHT, text, SIZE_TEXT, "FPS %i\n", finalCountFps);
         } else {
            BMFONT_RESET_TEXTPOS(CurDBMFONT, CurSurf);
-           OutMultiLinesTextBM16Format(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_DST, text, SIZE_TEXT, "FPS %i\n", finalCountFps);
+           OutMultiLinesTextBM16Format(30, BMFONT_ADJUST_DST, text, SIZE_TEXT, "FPS %i\n", finalCountFps);
         }
 
         if (accFps >= 1.0f) {
@@ -1263,7 +1263,7 @@ void RenderWorkerFunc(void *, int ) {
                                 (highQRendering)?"High":"Low", (skyBack)?"Yes":"No", (useBMFont)?"Yes":"No", (fullScreen)?"Yes":"No",
                                 (pauseShadow)?"ON":"OFF");
             } else {
-                OutMultiLinesTextBM16Format(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_SRC, text, SIZE_TEXT,
+                OutMultiLinesTextBM16Format(30, BMFONT_ADJUST_SRC, text, SIZE_TEXT,
                                 HelpInfoFormatMax,
                                 smoothingCores, smoothSurfRatio,
                                 resizeCores, renderCores,
@@ -1276,7 +1276,7 @@ void RenderWorkerFunc(void *, int ) {
             if (!useBMFont) {
                 OutText16ModeFormat(AJ_LEFT, text, SIZE_TEXT, HelpInfoFormatMin);
             } else {
-                OutMultiLinesTextBM16(OutTextBM16, &CurDBMFONT, CurSurf.MaxX, 0, BMFONT_ADJUST_SRC, HelpInfoFormatMin);
+                OutMultiLinesTextBM16(HelpInfoFormatMin, 30, BMFONT_ADJUST_SRC);
             }
 		}
 
@@ -1286,7 +1286,7 @@ void RenderWorkerFunc(void *, int ) {
         // wait until last frame displayed or an exit requested
         while(refreshWindow && !exitApp && !requestRenderMutex) {
             if (SynchScreen) {
-                DelayMs(1);
+                DgDelay(1);
             }
         }
         // camera move refresh
@@ -1321,9 +1321,11 @@ void RenderWorkerFunc(void *, int ) {
         }
 		if (requestRenderMutex) {
             requestRenderMutex = false;
-            DelayMs(10); // wait for 10 ms to allow the renderMutex to be token by another thread or DWorker
+            DWorkerYield();
+            DgDelay(10); // wait for 10 ms to allow the renderMutex to be token by another thread or DWorker
 		}
 		frames++;
+		DWorkerYield();
 	}
 	exitApp = false;
 }

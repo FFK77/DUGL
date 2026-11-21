@@ -1,22 +1,3 @@
-;   Dust Ultimate Game Library (DUGL)
-;   Copyright (C) 2025  Fakhri Feki
-;
-;    This program is free software: you can redistribute it and/or modify
-;    it under the terms of the GNU General Public License as published by
-;    the Free Software Foundation, either version 3 of the License, or
-;    (at your option) any later version.
-
-;    This program is distributed in the hope that it will be useful,
-;    but WITHOUT ANY WARRANTY; without even the implied warranty of
-;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;    GNU General Public License for more details.
-
-;    You should have received a copy of the GNU General Public License
-;    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-;
-;    contact: libdugl(at)hotmail.com
-;=============================================================================
-
 %include "PARAM.asm"
 
 ; enable windows/linux win32/elf32 building
@@ -272,7 +253,6 @@ Blur16:
         ; first pixel =============================
         MOVQ        xmm0,[ESI]
         MOVQ        xmm1,[ESI+EBX*2]
-
         MOVDQ2Q     mm0,xmm0
         MOVDQ2Q     mm3,xmm0
         MOVDQ2Q     mm1,xmm1
@@ -421,6 +401,7 @@ Blur16:
         MOVQ        xmm5,[QMul8ThirdW]
 
 .loopMidLines:
+        PREFETCHW   [EDI]
 
         MOVQ        xmm0,[ESI]
         MOVQ        xmm1,[ESI+EBX*2]
@@ -484,6 +465,7 @@ Blur16:
         STOSW
         JZ          .endMidLines
 
+        PREFETCHW   [EDI]
         PMULLW      xmm1, xmm5
         PMULLW      mm1, [QMul8ThirdW]
         PMULLW      mm4, [QMul8ThirdW]

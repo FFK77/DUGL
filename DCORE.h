@@ -1,23 +1,3 @@
-#ifndef HEADER_87CADEAFADF94D8D
-#define HEADER_87CADEAFADF94D8D
-
-/*  Dust Ultimate Game Library (DUGL)
-    Copyright (C) 2025  Fakhri Feki
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-    contact: libdugl(at)hotmail.com    */
 
 #ifndef DCORE_H_INCLUDED
 #define DCORE_H_INCLUDED
@@ -30,6 +10,9 @@ extern "C" {
 #define DUGL_VERSION_MINOR      0
 #define DUGL_VERSION_PATCH      2
 #define DUGL_VERSION_TYPE       'b' // a alpha, b beta, r release
+
+#define DUGL_VERSION "1.02b"
+#define DUGL_DATE_DMY "06/02/2026"
 
 typedef struct
 {   int ScanLine;
@@ -70,8 +53,6 @@ extern unsigned char DgWindowResized; // set to 1 if MainWindow has been resized
 int DgInit();
 // free all ressources allocated to run DUGL
 void DgQuit();
-// Get Last DUGL Errors ID, 0 if none
-int DgGetLastErr();
 
 // Init Main DUGL window
 // for BitPixels only is 16 bpp
@@ -201,9 +182,6 @@ void rectmap16(int x1,int y1,int x2,int y2,int rcol,unsigned int rmap);
 void rectblnd16(int x1,int y1,int x2,int y2,int rcol);
 void rectmapblnd16(int x1,int y1,int x2,int y2,int rcol,unsigned int rmap);
 
-// brute copy pixels data from DgSurf src to dst without any verification of BitsPixel or size
-void SurfMaskCopyBlnd16(DgSurf *S16Dst, DgSurf *S16Src,int colBlnd);
-void SurfMaskCopyTrans16(DgSurf *S16Dst, DgSurf *S16Src,int trans);
 
 // resize SSrcSurf into CurSurf taking account of source and destination Views
 // call to those functions will change SrcSurf, SSrcSurf could be null if there is a valid SrcSurf
@@ -253,11 +231,13 @@ unsigned int DgSurfCGetPixel16(DgSurf *S, int x, int y);
 void DgSurfCPutPixel16(DgSurf *S, int x, int y, int col);
 
 // brute copy pixels data from DgSurf src to dst without any verification of BitsPixel or size
+void DgMemCpy(void *dst, void *src, unsigned int sizeCopy);
 void SurfCopy(DgSurf *Sdst,DgSurf *Ssrc);
 void SurfMaskCopy16(DgSurf *Sdst,DgSurf *Ssrc);
 void SurfCopyBlnd16(DgSurf *S16Dst, DgSurf *S16Src,int colBlnd);
 void SurfCopyTrans16(DgSurf *S16Dst, DgSurf *S16Src,int trans);
-
+void SurfMaskCopyBlnd16(DgSurf *S16Dst, DgSurf *S16Src,int colBlnd);
+void SurfMaskCopyTrans16(DgSurf *S16Dst, DgSurf *S16Src,int trans);
 
 #ifdef __cplusplus
         }  // extern "C" {
